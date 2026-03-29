@@ -19,6 +19,8 @@ export function createStore() {
   const dirty = new Set<FieldPath>();
   const listeners = new Set<Listener>();
   let version = 0;
+  let cachedSnapshot: StoreSnapshot | null = null;
+  let cachedSnapshotVersion = -1;
 
   function emit() {
     version++;
@@ -99,12 +101,17 @@ export function createStore() {
   }
 
   function getSnapshot(): StoreSnapshot {
-    return {
+    if (cachedSnapshotVersion === version && cachedSnapshot) {
+      return cachedSnapshot;
+    }
+    cachedSnapshot = {
       fields: new Map(fields),
       sections: new Map(sections),
       overrides: { ...overrides },
       dirty: new Set(dirty),
     };
+    cachedSnapshotVersion = version;
+    return cachedSnapshot;
   }
 
   function subscribe(listener: Listener): () => void {
