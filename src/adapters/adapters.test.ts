@@ -1,5 +1,17 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { createMemoryAdapter, createLocalStorageAdapter } from './index';
+
+function createMockStorage(): Storage {
+  const data = new Map<string, string>();
+  return {
+    get length() { return data.size; },
+    clear() { data.clear(); },
+    getItem(key) { return data.get(key) ?? null; },
+    key(index) { return [...data.keys()][index] ?? null; },
+    removeItem(key) { data.delete(key); },
+    setItem(key, value) { data.set(key, String(value)); },
+  };
+}
 
 describe('createMemoryAdapter', () => {
   it('loads empty overrides by default', async () => {
@@ -34,27 +46,33 @@ describe('createMemoryAdapter', () => {
 });
 
 describe('createLocalStorageAdapter', () => {
+  let mockStorage: Storage;
+
+  beforeEach(() => {
+    mockStorage = createMockStorage();
+  });
+
   it('loads empty overrides when nothing stored', async () => {
-    const adapter = createLocalStorageAdapter('test-key');
+    const adapter = createLocalStorageAdapter('test-key', mockStorage);
     expect(await adapter.load()).toEqual({});
   });
 
   it('saves and loads overrides', async () => {
-    const adapter = createLocalStorageAdapter('test-key-2');
+    const adapter = createLocalStorageAdapter('test-key-2', mockStorage);
     await adapter.save({ foo: 'bar' });
     expect(await adapter.load()).toEqual({ foo: 'bar' });
   });
 
   it('clears overrides', async () => {
-    const adapter = createLocalStorageAdapter('test-key-3');
+    const adapter = createLocalStorageAdapter('test-key-3', mockStorage);
     await adapter.save({ foo: 'bar' });
     await adapter.clear();
     expect(await adapter.load()).toEqual({});
   });
 
   it('handles invalid JSON gracefully', async () => {
-    localStorage.setItem('test-bad-json', 'not-json');
-    const adapter = createLocalStorageAdapter('test-bad-json');
+    mockStorage.setItem('test-bad-json', 'not-json');
+    const adapter = createLocalStorageAdapter('test-bad-json', mockStorage);
     expect(await adapter.load()).toEqual({});
   });
 });

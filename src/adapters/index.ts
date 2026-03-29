@@ -22,12 +22,18 @@ export function createMemoryAdapter(initial: OverrideMap = {}): RestringAdapter 
 
 /**
  * localStorage adapter. Persists overrides in the browser.
+ * Accepts an optional storage parameter for testing or custom storage backends.
  */
-export function createLocalStorageAdapter(key = 'restringjs:overrides'): RestringAdapter {
+export function createLocalStorageAdapter(
+  key = 'restringjs:overrides',
+  storage?: Storage,
+): RestringAdapter {
+  const getStorage = () => storage ?? globalThis.localStorage;
+
   return {
     async load() {
       try {
-        const raw = localStorage.getItem(key);
+        const raw = getStorage().getItem(key);
         if (!raw) return {};
         return JSON.parse(raw) as OverrideMap;
       } catch {
@@ -35,10 +41,10 @@ export function createLocalStorageAdapter(key = 'restringjs:overrides'): Restrin
       }
     },
     async save(overrides) {
-      localStorage.setItem(key, JSON.stringify(overrides));
+      getStorage().setItem(key, JSON.stringify(overrides));
     },
     async clear() {
-      localStorage.removeItem(key);
+      getStorage().removeItem(key);
     },
   };
 }
