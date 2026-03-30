@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
 import { useRestringContext } from '../react/context';
 import type { FieldConfig, FieldPath } from '../core/types';
 import { useSyncExternalStore } from 'react';
@@ -21,15 +21,22 @@ export function RestringSidebar({
   const [open, setOpenState] = useState(defaultOpen);
   const [search, setSearch] = useState('');
 
+  const ctxRef = useRef(ctx);
+  ctxRef.current = ctx;
+
   const setOpen = useCallback((val: boolean) => {
     setOpenState(val);
-    ctx.setSidebarOpen(val);
-  }, [ctx]);
+    ctxRef.current.setSidebarOpen(val);
+  }, []);
 
-  // Sync initial state
+  // Sync initial state (once on mount)
+  const didMount = useRef(false);
   React.useEffect(() => {
-    ctx.setSidebarOpen(defaultOpen);
-  }, [ctx, defaultOpen]);
+    if (!didMount.current) {
+      didMount.current = true;
+      ctxRef.current.setSidebarOpen(defaultOpen);
+    }
+  }, [defaultOpen]);
 
   const snapshot = useSyncExternalStore(
     ctx.subscribe,
