@@ -18,6 +18,19 @@ Live string editor for React — edit text in-context, then bake changes into co
 - **Server-side rendering** — Next.js App Router and Pages Router helpers
 - **TypeScript-first** — full types, no `any` leakage
 
+## Try the Demo
+
+See all features in action without setting up a project:
+
+```bash
+git clone https://github.com/maki-q/restringjs.git
+cd restringjs
+pnpm install
+pnpm demo
+```
+
+This starts a Vite dev server with pages covering basic usage, FAQ sections, i18n (ICU + i18next), rich text editing, and visual highlight mode.
+
 ## Quick Start
 
 ```bash
