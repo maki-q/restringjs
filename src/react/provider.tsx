@@ -52,6 +52,8 @@ export function RestringProvider({ enabled, adapter, children }: RestringProvide
     setHighlightedField,
     sidebarOpen: storeRef.current.getSidebarOpen(),
     setSidebarOpen: (open: boolean) => storeRef.current.setSidebarOpen(open),
+    highlightMode: storeRef.current.getHighlightMode(),
+    setHighlightMode: (on: boolean) => storeRef.current.setHighlightMode(on),
   }), [enabled, save, loadOverrides, highlightedField]);
 
   if (!enabled) {

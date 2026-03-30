@@ -37,6 +37,8 @@ export function RestringSidebar({
     () => ctx.getSnapshot(),
   );
 
+  const highlightMode = snapshot.highlightMode;
+
   const filteredFields = useMemo(() => {
     const entries = Array.from(snapshot.fields.entries());
     if (!search) return entries;
@@ -127,6 +129,18 @@ export function RestringSidebar({
           )}
           <button type="button" onClick={() => ctx.resetAll()} style={headerBtnStyle}>
             Reset
+          </button>
+          <button
+            type="button"
+            onClick={() => ctx.setHighlightMode(!highlightMode)}
+            style={{
+              ...headerBtnStyle,
+              background: highlightMode ? 'rgba(74, 108, 247, 0.6)' : 'rgba(255,255,255,0.15)',
+            }}
+            aria-label={highlightMode ? 'Disable highlight mode' : 'Enable highlight mode'}
+            title={highlightMode ? 'Disable highlight mode' : 'Enable highlight mode'}
+          >
+            ◎
           </button>
           <button
             type="button"

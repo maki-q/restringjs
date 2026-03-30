@@ -17,13 +17,13 @@ export function RestringHighlight({ enabled = true }: RestringHighlightProps) {
   const overlayRef = useRef<HTMLDivElement | null>(null);
   const [overlays, setOverlays] = useState<OverlayData[]>([]);
 
-  const sidebarOpen = useSyncExternalStore(
+  const highlightMode = useSyncExternalStore(
     ctx.subscribe,
-    () => ctx.getSnapshot().sidebarOpen,
+    () => ctx.getSnapshot().highlightMode,
     () => false,
   );
 
-  const active = enabled && sidebarOpen;
+  const active = enabled && highlightMode;
 
   const scanDom = useCallback(() => {
     if (!active) {

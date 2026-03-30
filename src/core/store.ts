@@ -19,6 +19,7 @@ export function createStore() {
   const dirty = new Set<FieldPath>();
   const listeners = new Set<Listener>();
   let sidebarOpen = false;
+  let highlightMode = false;
   let version = 0;
   let cachedSnapshot: StoreSnapshot | null = null;
   let cachedSnapshotVersion = -1;
@@ -104,12 +105,25 @@ export function createStore() {
   function setSidebarOpen(open: boolean): void {
     if (sidebarOpen !== open) {
       sidebarOpen = open;
+      // Turn off highlight mode when sidebar closes
+      if (!open) highlightMode = false;
       emit();
     }
   }
 
   function getSidebarOpen(): boolean {
     return sidebarOpen;
+  }
+
+  function setHighlightMode(on: boolean): void {
+    if (highlightMode !== on) {
+      highlightMode = on;
+      emit();
+    }
+  }
+
+  function getHighlightMode(): boolean {
+    return highlightMode;
   }
 
   function getSnapshot(): StoreSnapshot {
@@ -122,6 +136,7 @@ export function createStore() {
       overrides: { ...overrides },
       dirty: new Set(dirty),
       sidebarOpen,
+      highlightMode,
     };
     cachedSnapshotVersion = version;
     return cachedSnapshot;
@@ -150,6 +165,8 @@ export function createStore() {
     isDirty,
     setSidebarOpen,
     getSidebarOpen,
+    setHighlightMode,
+    getHighlightMode,
     getSnapshot,
     subscribe,
     getVersion,
