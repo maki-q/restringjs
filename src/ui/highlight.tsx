@@ -10,10 +10,13 @@ interface RestringHighlightProps {
 /**
  * Visual highlight mode: overlays DOM elements that contain registered
  * field values, allowing click-to-jump to the sidebar editor.
- * Only active when the sidebar is open.
+ * Only active when highlight mode is toggled on in the sidebar.
  */
 export function RestringHighlight({ enabled = true }: RestringHighlightProps) {
   const ctx = useRestringContext();
+  const ctxRef = useRef(ctx);
+  ctxRef.current = ctx;
+
   const overlayRef = useRef<HTMLDivElement | null>(null);
   const [overlays, setOverlays] = useState<OverlayData[]>([]);
 
@@ -25,12 +28,12 @@ export function RestringHighlight({ enabled = true }: RestringHighlightProps) {
 
   const active = enabled && highlightMode;
 
-  const scanDom = useCallback(() => {
+  const scanDom = useCallback((): void => {
     if (!active) {
       setOverlays([]);
       return;
     }
-    const snapshot = ctx.getSnapshot();
+    const snapshot = ctxRef.current.getSnapshot();
     const fieldValues = new Map<string, FieldPath>();
 
     for (const [path, config] of snapshot.fields) {
@@ -45,9 +48,8 @@ export function RestringHighlight({ enabled = true }: RestringHighlightProps) {
       NodeFilter.SHOW_TEXT,
       {
         acceptNode(node) {
-          // Skip our own sidebar
           const parent = node.parentElement;
-          if (parent?.closest('.restringjs-sidebar, .restringjs-toggle')) {
+          if (parent?.closest('.restringjs-sidebar, .restringjs-toggle, .restringjs-highlight-overlay')) {
             return NodeFilter.FILTER_REJECT;
           }
           return NodeFilter.FILTER_ACCEPT;
@@ -71,31 +73,40 @@ export function RestringHighlight({ enabled = true }: RestringHighlightProps) {
     }
 
     setOverlays(found);
-  }, [ctx, active]);
+  }, [active]);
 
+  // Subscribe to store changes and DOM mutations
   useEffect(() => {
-    if (!active) return;
+    if (!active) {
+      setOverlays([]);
+      return;
+    }
     scanDom();
-    const unsub = ctx.subscribe(scanDom);
-    const observer = new MutationObserver(scanDom);
+    const unsub = ctxRef.current.subscribe(() => scanDom());
+    const observer = new MutationObserver(() => scanDom());
     observer.observe(document.body, { childList: true, subtree: true, characterData: true });
     return () => {
       unsub();
       observer.disconnect();
     };
-  }, [ctx, active, scanDom]);
+  }, [active, scanDom]);
+
+  const handleClick = useCallback((path: FieldPath) => {
+    ctxRef.current.setHighlightedField(path);
+  }, []);
 
   if (!active || overlays.length === 0) return null;
 
   return (
     <div
       ref={overlayRef}
+      className="restringjs-highlight-overlay"
       style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 99998 }}
     >
       {overlays.map((overlay) => (
         <div
           key={overlay.path}
-          onClick={() => ctx.setHighlightedField(overlay.path)}
+          onClick={() => handleClick(overlay.path)}
           style={{
             position: 'fixed',
             top: overlay.rect.top - 2,

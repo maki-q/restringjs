@@ -105,8 +105,8 @@ export function createStore() {
   function setSidebarOpen(open: boolean): void {
     if (sidebarOpen !== open) {
       sidebarOpen = open;
-      // Turn off highlight mode when sidebar closes
-      if (!open) highlightMode = false;
+      // Default: highlights on when sidebar opens, off when it closes
+      highlightMode = open;
       emit();
     }
   }

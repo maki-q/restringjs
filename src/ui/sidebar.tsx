@@ -137,10 +137,9 @@ export function RestringSidebar({
               ...headerBtnStyle,
               background: highlightMode ? 'rgba(74, 108, 247, 0.6)' : 'rgba(255,255,255,0.15)',
             }}
-            aria-label={highlightMode ? 'Disable highlight mode' : 'Enable highlight mode'}
-            title={highlightMode ? 'Disable highlight mode' : 'Enable highlight mode'}
+            aria-label={highlightMode ? 'Turn off highlights' : 'Turn on highlights'}
           >
-            ◎
+            {highlightMode ? 'Highlights off' : 'Highlights on'}
           </button>
           <button
             type="button"
