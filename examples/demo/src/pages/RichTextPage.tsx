@@ -34,7 +34,7 @@ export function RichTextPage() {
     <div>
       <h2 className="page-title">Rich Text</h2>
       <p className="page-subtitle">
-        Fields with <code>richText: true</code> preserve HTML formatting in the sidebar editor.
+        Fields with <code>richText: true</code> are edited as raw HTML in the sidebar, so you can see and control the exact markup.
       </p>
 
       <div className="rich-text-demo">

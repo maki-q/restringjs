@@ -283,17 +283,20 @@ function FieldEditor({ path, config, value, isDirty, isHighlighted, onFocus, onB
         )}
       </div>
       {config.richText ? (
-        <div
-          contentEditable
-          suppressContentEditableWarning
+        <textarea
+          value={value}
           dir={isRtl ? 'rtl' : 'ltr'}
+          onChange={(e) => onChange(e.target.value)}
           onFocus={onFocus}
-          onBlur={(e) => {
-            onChange(e.currentTarget.innerHTML);
-            onBlur();
+          onBlur={onBlur}
+          rows={Math.min(Math.max(value.split('\n').length, value.length > 80 ? 3 : 1), 10)}
+          style={{
+            ...editorInputStyle,
+            resize: 'vertical',
+            fontFamily: 'monospace',
+            fontSize: '12px',
           }}
-          style={editorInputStyle}
-          dangerouslySetInnerHTML={{ __html: value }}
+          aria-label={`Edit ${path} (HTML)`}
         />
       ) : (
         <textarea
