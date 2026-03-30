@@ -56,6 +56,7 @@ export interface StoreSnapshot {
   sections: Map<string, SectionConfig>;
   overrides: OverrideMap;
   dirty: Set<FieldPath>;
+  sidebarOpen: boolean;
 }
 
 /**
@@ -116,6 +117,10 @@ export interface RestringContextValue {
   highlightedField: FieldPath | null;
   /** Set the highlighted field */
   setHighlightedField(path: FieldPath | null): void;
+  /** Whether the sidebar is open */
+  sidebarOpen: boolean;
+  /** Set sidebar open state */
+  setSidebarOpen(open: boolean): void;
 }
 
 /**

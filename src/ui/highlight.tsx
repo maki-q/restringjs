@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { useRestringContext } from '../react/context';
 import type { FieldPath } from '../core/types';
 
@@ -10,14 +10,26 @@ interface RestringHighlightProps {
 /**
  * Visual highlight mode: overlays DOM elements that contain registered
  * field values, allowing click-to-jump to the sidebar editor.
+ * Only active when the sidebar is open.
  */
 export function RestringHighlight({ enabled = true }: RestringHighlightProps) {
   const ctx = useRestringContext();
   const overlayRef = useRef<HTMLDivElement | null>(null);
   const [overlays, setOverlays] = useState<OverlayData[]>([]);
 
+  const sidebarOpen = useSyncExternalStore(
+    ctx.subscribe,
+    () => ctx.getSnapshot().sidebarOpen,
+    () => false,
+  );
+
+  const active = enabled && sidebarOpen;
+
   const scanDom = useCallback(() => {
-    if (!enabled) return;
+    if (!active) {
+      setOverlays([]);
+      return;
+    }
     const snapshot = ctx.getSnapshot();
     const fieldValues = new Map<string, FieldPath>();
 
@@ -59,10 +71,10 @@ export function RestringHighlight({ enabled = true }: RestringHighlightProps) {
     }
 
     setOverlays(found);
-  }, [ctx, enabled]);
+  }, [ctx, active]);
 
   useEffect(() => {
-    if (!enabled) return;
+    if (!active) return;
     scanDom();
     const unsub = ctx.subscribe(scanDom);
     const observer = new MutationObserver(scanDom);
@@ -71,9 +83,9 @@ export function RestringHighlight({ enabled = true }: RestringHighlightProps) {
       unsub();
       observer.disconnect();
     };
-  }, [ctx, enabled, scanDom]);
+  }, [ctx, active, scanDom]);
 
-  if (!enabled || overlays.length === 0) return null;
+  if (!active || overlays.length === 0) return null;
 
   return (
     <div

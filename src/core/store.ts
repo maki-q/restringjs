@@ -18,6 +18,7 @@ export function createStore() {
   let overrides: OverrideMap = {};
   const dirty = new Set<FieldPath>();
   const listeners = new Set<Listener>();
+  let sidebarOpen = false;
   let version = 0;
   let cachedSnapshot: StoreSnapshot | null = null;
   let cachedSnapshotVersion = -1;
@@ -100,6 +101,17 @@ export function createStore() {
     return dirty.size > 0;
   }
 
+  function setSidebarOpen(open: boolean): void {
+    if (sidebarOpen !== open) {
+      sidebarOpen = open;
+      emit();
+    }
+  }
+
+  function getSidebarOpen(): boolean {
+    return sidebarOpen;
+  }
+
   function getSnapshot(): StoreSnapshot {
     if (cachedSnapshotVersion === version && cachedSnapshot) {
       return cachedSnapshot;
@@ -109,6 +121,7 @@ export function createStore() {
       sections: new Map(sections),
       overrides: { ...overrides },
       dirty: new Set(dirty),
+      sidebarOpen,
     };
     cachedSnapshotVersion = version;
     return cachedSnapshot;
@@ -135,6 +148,8 @@ export function createStore() {
     setOverrides,
     getOverrides,
     isDirty,
+    setSidebarOpen,
+    getSidebarOpen,
     getSnapshot,
     subscribe,
     getVersion,

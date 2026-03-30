@@ -18,8 +18,18 @@ export function RestringSidebar({
   defaultOpen = false,
 }: RestringSidebarProps) {
   const ctx = useRestringContext();
-  const [open, setOpen] = useState(defaultOpen);
+  const [open, setOpenState] = useState(defaultOpen);
   const [search, setSearch] = useState('');
+
+  const setOpen = useCallback((val: boolean) => {
+    setOpenState(val);
+    ctx.setSidebarOpen(val);
+  }, [ctx]);
+
+  // Sync initial state
+  React.useEffect(() => {
+    ctx.setSidebarOpen(defaultOpen);
+  }, [ctx, defaultOpen]);
 
   const snapshot = useSyncExternalStore(
     ctx.subscribe,
