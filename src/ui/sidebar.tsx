@@ -142,7 +142,7 @@ export function RestringSidebar({
             onClick={() => ctx.setHighlightMode(!highlightMode)}
             style={{
               ...headerBtnStyle,
-              background: highlightMode ? 'rgba(74, 108, 247, 0.6)' : 'rgba(255,255,255,0.15)',
+              background: highlightMode ? `${ctx.highlightColor}99` : 'rgba(255,255,255,0.15)',
             }}
             aria-label={highlightMode ? 'Turn off highlights' : 'Turn on highlights'}
           >
@@ -204,6 +204,7 @@ export function RestringSidebar({
                   value={snapshot.overrides[path] ?? config.defaultValue}
                   isDirty={snapshot.dirty.has(path)}
                   isHighlighted={ctx.highlightedField === path}
+                  highlightColor={ctx.highlightColor}
                   onFocus={() => ctx.setHighlightedField(path)}
                   onBlur={() => ctx.setHighlightedField(null)}
                   onChange={(val) => ctx.setOverride(path, val)}
@@ -239,21 +240,22 @@ interface FieldEditorProps {
   value: string;
   isDirty: boolean;
   isHighlighted: boolean;
+  highlightColor: string;
   onFocus: () => void;
   onBlur: () => void;
   onChange: (value: string) => void;
   onReset: () => void;
 }
 
-function FieldEditor({ path, config, value, isDirty, isHighlighted, onFocus, onBlur, onChange, onReset }: FieldEditorProps) {
+function FieldEditor({ path, config, value, isDirty, isHighlighted, highlightColor, onFocus, onBlur, onChange, onReset }: FieldEditorProps) {
   const isRtl = detectRtl(value);
 
   return (
     <div
       style={{
         padding: '6px 16px',
-        borderLeft: isHighlighted ? '3px solid #4a6cf7' : '3px solid transparent',
-        background: isHighlighted ? '#f0f4ff' : 'transparent',
+        borderLeft: isHighlighted ? `3px solid ${highlightColor}` : '3px solid transparent',
+        background: isHighlighted ? `${highlightColor}14` : 'transparent',
         transition: 'all 0.15s',
       }}
     >

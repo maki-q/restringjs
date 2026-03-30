@@ -15,6 +15,8 @@ type Listener = () => void;
 export interface StoreOptions {
   /** Whether highlight mode starts enabled. Defaults to `true`. */
   defaultHighlightMode?: boolean;
+  /** CSS color for highlight overlays. Defaults to `'#4a6cf7'`. */
+  highlightColor?: string;
 }
 
 export function createStore(options?: StoreOptions) {
@@ -25,6 +27,7 @@ export function createStore(options?: StoreOptions) {
   const listeners = new Set<Listener>();
   let sidebarOpen = false;
   let highlightMode = options?.defaultHighlightMode ?? true;
+  const highlightColor = options?.highlightColor ?? '#4a6cf7';
   let version = 0;
   let cachedSnapshot: StoreSnapshot | null = null;
   let cachedSnapshotVersion = -1;
@@ -131,6 +134,10 @@ export function createStore(options?: StoreOptions) {
     return highlightMode;
   }
 
+  function getHighlightColor(): string {
+    return highlightColor;
+  }
+
   function getSnapshot(): StoreSnapshot {
     if (cachedSnapshotVersion === version && cachedSnapshot) {
       return cachedSnapshot;
@@ -172,6 +179,7 @@ export function createStore(options?: StoreOptions) {
     getSidebarOpen,
     setHighlightMode,
     getHighlightMode,
+    getHighlightColor,
     getSnapshot,
     subscribe,
     getVersion,

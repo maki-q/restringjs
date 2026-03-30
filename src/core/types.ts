@@ -126,6 +126,8 @@ export interface RestringContextValue {
   highlightMode: boolean;
   /** Toggle highlight mode */
   setHighlightMode(on: boolean): void;
+  /** Highlight overlay color (CSS color string) */
+  highlightColor: string;
 }
 
 /**

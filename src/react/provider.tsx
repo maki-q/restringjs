@@ -8,11 +8,13 @@ interface RestringProviderProps {
   adapter?: RestringAdapter;
   /** Whether highlight mode starts enabled. Defaults to `true`. */
   defaultHighlightMode?: boolean;
+  /** CSS color for highlight overlays. Defaults to `'#4a6cf7'`. */
+  highlightColor?: string;
   children: React.ReactNode;
 }
 
-export function RestringProvider({ enabled, adapter, defaultHighlightMode, children }: RestringProviderProps) {
-  const storeRef = useRef(createStore({ defaultHighlightMode }));
+export function RestringProvider({ enabled, adapter, defaultHighlightMode, highlightColor, children }: RestringProviderProps) {
+  const storeRef = useRef(createStore({ defaultHighlightMode, highlightColor }));
   const [highlightedField, setHighlightedField] = useState<FieldPath | null>(null);
   const adapterRef = useRef(adapter);
   adapterRef.current = adapter;
@@ -56,6 +58,7 @@ export function RestringProvider({ enabled, adapter, defaultHighlightMode, child
     setSidebarOpen: (open: boolean) => storeRef.current.setSidebarOpen(open),
     highlightMode: storeRef.current.getHighlightMode(),
     setHighlightMode: (on: boolean) => storeRef.current.setHighlightMode(on),
+    highlightColor: storeRef.current.getHighlightColor(),
   }), [enabled, save, loadOverrides, highlightedField]);
 
   if (!enabled) {

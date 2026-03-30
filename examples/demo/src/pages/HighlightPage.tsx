@@ -80,8 +80,8 @@ export function HighlightPage() {
     <div className="highlight-demo">
       <h2 className="page-title">Visual Highlight Demo</h2>
       <p className="page-subtitle">
-        Highlight mode is on by default. Hover over any highlighted element to see its field path, then click to jump to it in the sidebar.
-        Toggle it off with the button in the sidebar header, or set <code>defaultHighlightMode=&#123;false&#125;</code> on the provider.
+        Highlight mode is on by default. Open the Restring sidebar first (click the ✏️ tab on the right), then hover over any highlighted element to see its field path. Click to jump straight to that field in the sidebar.
+        Customize the color with <code>highlightColor</code> on the provider, or disable highlights by default with <code>defaultHighlightMode=&#123;false&#125;</code>.
       </p>
 
       {/* Pricing section */}

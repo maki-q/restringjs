@@ -19,6 +19,7 @@ export function RestringHighlight({ enabled = true }: RestringHighlightProps) {
 
   const overlayRef = useRef<HTMLDivElement | null>(null);
   const [overlays, setOverlays] = useState<OverlayData[]>([]);
+  const color = ctx.highlightColor;
 
   const highlightMode = useSyncExternalStore(
     ctx.subscribe,
@@ -100,6 +101,19 @@ export function RestringHighlight({ enabled = true }: RestringHighlightProps) {
 
   const handleClick = useCallback((path: FieldPath) => {
     ctxRef.current.setHighlightedField(path);
+    // Scroll the sidebar field into view
+    requestAnimationFrame(() => {
+      const sidebar = document.querySelector('.restringjs-sidebar');
+      if (!sidebar) return;
+      // Find the field editor by its label text
+      const labels = sidebar.querySelectorAll('label');
+      for (const label of labels) {
+        if (label.textContent?.trim().replace(/●$/, '').trim() === path) {
+          label.closest('div[style]')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          break;
+        }
+      }
+    });
   }, []);
 
   if (!active || overlays.length === 0) return null;
@@ -120,11 +134,11 @@ export function RestringHighlight({ enabled = true }: RestringHighlightProps) {
             left: overlay.rect.left - 2,
             width: overlay.rect.width + 4,
             height: overlay.rect.height + 4,
-            border: '2px solid #4a6cf7',
+            border: `2px solid ${color}`,
             borderRadius: '2px',
             pointerEvents: 'auto',
             cursor: 'pointer',
-            background: 'rgba(74, 108, 247, 0.08)',
+            background: `${color}14`,
             transition: 'all 0.15s',
           }}
           title={`Edit: ${overlay.path}`}
