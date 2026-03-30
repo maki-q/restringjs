@@ -80,14 +80,9 @@ export function HighlightPage() {
     <div className="highlight-demo">
       <h2 className="page-title">Visual Highlight Demo</h2>
       <p className="page-subtitle">
-        This page is packed with editable text. Toggle highlight mode to see it in action.
+        Highlight mode is on by default. Hover over any highlighted element to see its field path, then click to jump to it in the sidebar.
+        Toggle it off with the button in the sidebar header, or set <code>defaultHighlightMode=&#123;false&#125;</code> on the provider.
       </p>
-
-      <div className="highlight-instructions">
-        <strong>👉 Try it:</strong> Open the Restring sidebar (click the ✏️ tab on the right), 
-        then look for the <code>RestringHighlight</code> overlays on this page. 
-        Hover over highlighted elements to see their paths, and click to jump to the field in the sidebar.
-      </div>
 
       {/* Pricing section */}
       <PricingSection />

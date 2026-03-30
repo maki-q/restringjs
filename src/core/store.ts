@@ -12,14 +12,19 @@ type Listener = () => void;
  * Central store for field registrations and overrides.
  * Immutable apply — never mutates original config objects.
  */
-export function createStore() {
+export interface StoreOptions {
+  /** Whether highlight mode starts enabled. Defaults to `true`. */
+  defaultHighlightMode?: boolean;
+}
+
+export function createStore(options?: StoreOptions) {
   const fields = new Map<FieldPath, FieldConfig>();
   const sections = new Map<string, SectionConfig>();
   let overrides: OverrideMap = {};
   const dirty = new Set<FieldPath>();
   const listeners = new Set<Listener>();
   let sidebarOpen = false;
-  let highlightMode = false;
+  let highlightMode = options?.defaultHighlightMode ?? true;
   let version = 0;
   let cachedSnapshot: StoreSnapshot | null = null;
   let cachedSnapshotVersion = -1;

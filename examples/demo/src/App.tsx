@@ -12,15 +12,15 @@ const adapter = createLocalStorageAdapter('restringjs-demo:overrides');
 type PageId = 'marketing' | 'faq' | 'i18n' | 'richtext' | 'highlight';
 
 const pages: { id: PageId; label: string }[] = [
+  { id: 'highlight', label: 'Highlight' },
   { id: 'marketing', label: 'Marketing' },
   { id: 'faq', label: 'FAQ' },
   { id: 'i18n', label: 'i18n' },
   { id: 'richtext', label: 'Rich Text' },
-  { id: 'highlight', label: 'Highlight' },
 ];
 
 export function App() {
-  const [activePage, setActivePage] = useState<PageId>('marketing');
+  const [activePage, setActivePage] = useState<PageId>('highlight');
 
   return (
     <RestringProvider enabled={true} adapter={adapter}>

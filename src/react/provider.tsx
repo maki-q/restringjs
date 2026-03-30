@@ -6,11 +6,13 @@ import { RestringContext } from './context';
 interface RestringProviderProps {
   enabled: boolean;
   adapter?: RestringAdapter;
+  /** Whether highlight mode starts enabled. Defaults to `true`. */
+  defaultHighlightMode?: boolean;
   children: React.ReactNode;
 }
 
-export function RestringProvider({ enabled, adapter, children }: RestringProviderProps) {
-  const storeRef = useRef(createStore());
+export function RestringProvider({ enabled, adapter, defaultHighlightMode, children }: RestringProviderProps) {
+  const storeRef = useRef(createStore({ defaultHighlightMode }));
   const [highlightedField, setHighlightedField] = useState<FieldPath | null>(null);
   const adapterRef = useRef(adapter);
   adapterRef.current = adapter;
