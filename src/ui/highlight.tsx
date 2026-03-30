@@ -75,7 +75,7 @@ export function RestringHighlight({ enabled = true }: RestringHighlightProps) {
     setOverlays(found);
   }, [active]);
 
-  // Subscribe to store changes and DOM mutations
+  // Subscribe to store changes, DOM mutations, and scroll
   useEffect(() => {
     if (!active) {
       setOverlays([]);
@@ -85,9 +85,16 @@ export function RestringHighlight({ enabled = true }: RestringHighlightProps) {
     const unsub = ctxRef.current.subscribe(() => scanDom());
     const observer = new MutationObserver(() => scanDom());
     observer.observe(document.body, { childList: true, subtree: true, characterData: true });
+
+    const onScroll = () => scanDom();
+    window.addEventListener('scroll', onScroll, true);
+    window.addEventListener('resize', onScroll);
+
     return () => {
       unsub();
       observer.disconnect();
+      window.removeEventListener('scroll', onScroll, true);
+      window.removeEventListener('resize', onScroll);
     };
   }, [active, scanDom]);
 
