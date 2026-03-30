@@ -241,6 +241,21 @@ body {
   padding: 16px;
 }
 
+.rich-text-rendered ul,
+.rich-text-rendered ol {
+  padding-left: 1.5em;
+  margin: 0.5em 0;
+}
+
+.rich-text-rendered h3,
+.rich-text-rendered h4 {
+  margin: 0 0 0.5em;
+}
+
+.rich-text-rendered p {
+  margin: 0.5em 0;
+}
+
 .rich-text-source {
   padding: 12px 16px;
   background: #1a1a2e;
