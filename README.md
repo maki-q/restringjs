@@ -410,7 +410,7 @@ pnpm demo     # start demo app
 
 ## License
 
-[MIT](./LICENSE) - Quinton Maki
+[MIT](./LICENSE) - [Quinton Maki](https://qmaki.dev)
 
 ---
 
