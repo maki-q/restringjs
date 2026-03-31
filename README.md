@@ -1,24 +1,34 @@
 # restringjs
 
-Live string editor for React — edit text in-context, then bake changes into code.
+Live string editor for React. Edit text in-context, then bake changes into code.
 
-**restringjs** gives your team a sidebar where they can tweak every user-facing string in your app, see changes instantly, then permanently bake those edits into your source files with a single CLI command. No CMS required.
+<!-- TODO: Add hero GIF showing sidebar editing + bake workflow -->
+
+**restringjs** gives your team a sidebar where they can tweak every user-facing string in your app, see changes instantly, then permanently bake those edits into your source files with a single CLI command. No CMS. No runtime overhead in production.
+
+## Why
+
+You have a marketing team that wants to change "Get Started" to "Start Free Trial." Today that's a Jira ticket, a PR, a deploy. With restringjs, they open the sidebar, make the edit, and a developer runs `npx restringjs bake` to commit it. Or you skip the middleman entirely and bake it yourself.
+
+The key insight: most string changes don't need a CMS. They need a good workflow for getting text changes into source code.
 
 ## Features
 
-- **Live editing sidebar** — search, filter, group, and edit strings in-place
-- **Zero bytes when disabled** — the sidebar tree-shakes completely in production
-- **Bake & eject** — apply overrides directly into source code via AST transforms (preserves formatting and comments)
-- **ICU MessageFormat** — syntax validation, variable chips, plural grouping, select variant tabs
-- **i18next support** — auto-detects `{{variable}}` and `$t()` patterns
-- **RTL-aware** — inputs auto-detect text direction
-- **Rich text** — opt-in HTML/Markdown preservation per field
-- **Visual highlight mode** — overlay DOM elements, click to jump to the editor
-- **Pluggable storage** — memory, localStorage, and REST adapters (or write your own)
-- **Server-side rendering** — Next.js App Router and Pages Router helpers
-- **TypeScript-first** — full types, no `any` leakage
+- **Live editing sidebar** with search, filtering, and section grouping
+- **Zero bytes in production** - the sidebar tree-shakes completely when disabled
+- **Bake & eject** - AST transforms apply overrides directly into source files, preserving formatting and comments
+- **ICU MessageFormat** - syntax validation, variable chips, plural grouping with locale-aware labels
+- **i18next support** - auto-detects `{{variable}}` and `$t()` patterns
+- **Visual highlight mode** - overlay registered DOM elements, click to jump to the editor
+- **RTL-aware** - inputs auto-detect text direction
+- **Rich text** - opt-in HTML/Markdown preservation per field
+- **Pluggable storage** - memory, localStorage, and REST adapters included (or write your own)
+- **Server-side rendering** - Next.js App Router and Pages Router helpers
+- **TypeScript-first** - full types, no `any` leakage
 
-## Try the Demo
+## Demo
+
+<!-- TODO: Add screenshot of demo app showing sidebar + highlight overlays -->
 
 See all features in action without setting up a project:
 
@@ -29,7 +39,9 @@ pnpm install
 pnpm demo
 ```
 
-This starts a Vite dev server with pages covering basic usage, FAQ sections, i18n (ICU + i18next), rich text editing, and visual highlight mode.
+Five pages covering basic usage, FAQ sections, i18n (ICU + i18next), rich text editing, and visual highlight mode.
+
+<!-- TODO: Add GIF of highlight mode - clicking overlay, jumping to field in sidebar -->
 
 ## Quick Start
 
@@ -64,13 +76,13 @@ function Hero() {
   const title = useRestring({
     path: 'hero.title',
     defaultValue: 'Welcome to our app',
-    section: 'hero',
+    section: 'marketing',
   });
 
   const subtitle = useRestring({
     path: 'hero.subtitle',
     defaultValue: 'The best way to manage your strings',
-    section: 'hero',
+    section: 'marketing',
   });
 
   return (
@@ -88,35 +100,35 @@ function Hero() {
 npx restringjs bake "src/**/*.tsx"
 ```
 
-Done. Your source files now contain the edited strings. No runtime overhead. No adapter needed anymore.
+Your source files now contain the edited strings. No runtime overhead. No adapter needed in production.
 
-## Adapters
+## Visual Highlight Mode
 
-```ts
-import { createMemoryAdapter, createLocalStorageAdapter, createRestAdapter } from 'restringjs/adapters';
+<!-- TODO: Add GIF showing highlight overlays on a page with click-to-jump -->
 
-// Ephemeral (lost on refresh)
-const memory = createMemoryAdapter();
+Overlay registered DOM elements so you can see exactly which strings are editable:
 
-// Persists in browser
-const local = createLocalStorageAdapter('my-app:overrides');
+```tsx
+import { RestringProvider, RestringSidebar, RestringHighlight } from 'restringjs';
 
-// Persists to your API
-const rest = createRestAdapter('https://api.example.com/overrides', {
-  headers: { Authorization: 'Bearer ...' },
-});
+<RestringProvider enabled adapter={adapter}>
+  <YourApp />
+  <RestringHighlight />
+  <RestringSidebar />
+</RestringProvider>
 ```
 
-### Custom adapter
+Click any highlighted element to jump to its field in the sidebar. Overlays track scroll and resize automatically.
 
-```ts
-import type { RestringAdapter } from 'restringjs';
+Configure the highlight color via the provider:
 
-const myAdapter: RestringAdapter = {
-  async load() { /* return OverrideMap */ },
-  async save(overrides) { /* persist overrides */ },
-  async clear() { /* remove all overrides */ },
-};
+```tsx
+<RestringProvider
+  enabled
+  adapter={adapter}
+  defaultHighlightMode={true}
+  highlightColor="#ff6b6b"
+>
 ```
 
 ## ICU MessageFormat
@@ -131,7 +143,9 @@ const greeting = useRestring({
 });
 ```
 
-The sidebar will show variable chips, validate syntax, and group plural forms with locale-aware labels.
+The sidebar shows variable chips, validates syntax in real time, and groups plural forms with locale-aware labels.
+
+<!-- TODO: Add screenshot of ICU editing in sidebar showing variable chips + plural tabs -->
 
 ## i18next Support
 
@@ -143,7 +157,78 @@ const welcome = useRestring({
 });
 ```
 
-Format detection is automatic — you can also omit `format` and let restringjs figure it out.
+Format detection is automatic. You can omit `format` and let restringjs figure it out.
+
+## Sections
+
+Group related fields in the sidebar:
+
+```tsx
+import { useRegisterSection, useRestring } from 'restringjs';
+
+function PricingPage() {
+  useRegisterSection({
+    id: 'pricing',
+    label: 'Pricing Page',
+    order: 2,
+    description: 'All pricing-related copy',
+  });
+
+  const headline = useRestring({
+    path: 'pricing.headline',
+    defaultValue: 'Simple, transparent pricing',
+    section: 'pricing',
+  });
+
+  return <h1>{headline}</h1>;
+}
+```
+
+## Adapters
+
+```ts
+import {
+  createMemoryAdapter,
+  createLocalStorageAdapter,
+  createRestAdapter,
+} from 'restringjs/adapters';
+
+// Ephemeral (lost on refresh)
+const memory = createMemoryAdapter();
+
+// Persists in browser localStorage
+const local = createLocalStorageAdapter('my-app:overrides');
+
+// Persists to your API
+const rest = createRestAdapter('https://api.example.com/overrides', {
+  headers: { Authorization: 'Bearer ...' },
+});
+```
+
+### Custom adapter
+
+Implement three async methods:
+
+```ts
+import type { RestringAdapter } from 'restringjs';
+
+const myAdapter: RestringAdapter = {
+  async load() {
+    // Return Record<string, string> of field path -> override value
+    const res = await fetch('/api/overrides');
+    return res.json();
+  },
+  async save(overrides) {
+    await fetch('/api/overrides', {
+      method: 'PUT',
+      body: JSON.stringify(overrides),
+    });
+  },
+  async clear() {
+    await fetch('/api/overrides', { method: 'DELETE' });
+  },
+};
+```
 
 ## Server-Side Rendering
 
@@ -153,7 +238,7 @@ Format detection is automatic — you can also omit `format` and let restringjs 
 import { createServerApply } from 'restringjs/server';
 
 const apply = createServerApply(async () => {
-  // Load overrides from your database, API, cookie, etc.
+  // Load overrides from your database, cookie, API, etc.
   return { 'hero.title': 'Server-rendered override' };
 });
 
@@ -173,49 +258,37 @@ import { withRestringOverrides, serverApply } from 'restringjs/server';
 
 export const getServerSideProps = async () => {
   const { restringOverrides } = await withRestringOverrides(() => loadOverrides())();
-  return { props: { restringOverrides } };
+  const strings = serverApply(defaultStrings, restringOverrides);
+  return { props: { strings } };
 };
 ```
-
-## Visual Highlight Mode
-
-Show overlays on DOM elements that contain registered strings:
-
-```tsx
-import { RestringHighlight } from 'restringjs';
-
-<RestringProvider enabled>
-  <YourApp />
-  <RestringHighlight />
-  <RestringSidebar />
-</RestringProvider>
-```
-
-Click any highlighted element to jump to its field in the sidebar.
 
 ## CLI
 
 ```bash
-# Bake overrides into source files
-restringjs bake "src/**/*.tsx"
+# Bake overrides into source files (AST transform, preserves formatting)
+npx restringjs bake "src/**/*.tsx"
 
-# Dry run (preview changes)
-restringjs bake "src/**/*.tsx" --dry-run
+# Dry run - preview what would change without writing
+npx restringjs bake "src/**/*.tsx" --dry-run
 
-# Show diffs between source and overrides
-restringjs diff
+# Use a custom overrides file (default: .restringjs-overrides.json)
+npx restringjs bake "src/**/*.tsx" --overrides=my-overrides.json
 
-# Validate overrides (check for stale keys)
-restringjs validate
+# Show diffs between source defaults and current overrides
+npx restringjs diff
 
-# Export overrides to JSON
-restringjs export > overrides.json
+# Check for stale overrides (keys that no longer exist in source)
+npx restringjs validate
+
+# Export current overrides to JSON
+npx restringjs export > overrides.json
 
 # Import overrides from JSON
-restringjs import < overrides.json
+npx restringjs import < overrides.json
 
 # Clear all stored overrides
-restringjs clear
+npx restringjs clear
 ```
 
 ## API Reference
@@ -224,35 +297,76 @@ restringjs clear
 
 | Hook | Description |
 |------|-------------|
-| `useRestring(config)` | Register a field, return its current value |
-| `useRegister(config)` | Register a field, return `[value, setValue]` |
-| `useRegisterSection(config)` | Register a sidebar section |
-| `useFieldValue(path)` | Read a field value without registering |
-| `useSnapshot()` | Get the full store snapshot |
+| `useRestring(config)` | Register a field, return its current value (override or default) |
+| `useRegister(config)` | Register a field, return `[value, setValue]` tuple |
+| `useRegisterSection(config)` | Register a sidebar section for grouping |
+| `useFieldValue(path)` | Read a field's current value without registering it |
+| `useSnapshot()` | Get the full store snapshot (fields, sections, overrides, dirty state) |
 
 ### Components
 
 | Component | Description |
 |-----------|-------------|
-| `RestringProvider` | Context provider (required) |
-| `RestringSidebar` | Editing sidebar UI |
-| `RestringHighlight` | Visual overlay mode |
+| `RestringProvider` | Context provider. Set `enabled` to control sidebar availability. |
+| `RestringSidebar` | The editing sidebar UI. Search, filter, edit, save. |
+| `RestringHighlight` | Visual overlay mode. Renders borders on registered DOM elements. |
+
+### Provider Props
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `enabled` | `boolean` | required | Whether editing mode is active |
+| `adapter` | `RestringAdapter` | memory | Storage adapter for persisting overrides |
+| `defaultHighlightMode` | `boolean` | `true` | Whether highlight overlays start enabled |
+| `highlightColor` | `string` | `'#4a6cf7'` | CSS color for highlight overlays and accents |
 
 ### Utilities
 
 | Function | Description |
 |----------|-------------|
-| `applyOverrides(obj, overrides)` | Apply overrides immutably |
-| `flattenObject(obj)` | Flatten nested object to dot-paths |
+| `applyOverrides(obj, overrides)` | Apply overrides to an object immutably |
+| `flattenObject(obj)` | Flatten nested object to dot-path keys |
 | `unflattenObject(flat)` | Reverse of flatten |
-| `detectFormat(value)` | Auto-detect string format |
-| `createStore()` | Create a standalone store instance |
+| `detectFormat(value)` | Auto-detect string format (icu, i18next, plain) |
+| `createStore(options?)` | Create a standalone store instance |
+
+### Server Exports (`restringjs/server`)
+
+| Function | Description |
+|----------|-------------|
+| `serverApply(strings, overrides)` | Apply overrides server-side, returns new object |
+| `createServerApply(loader)` | Create a reusable apply function with an async override loader |
+| `withRestringOverrides(loader)` | Pages Router helper for getServerSideProps |
+
+### Field Config
+
+```ts
+interface FieldConfig {
+  path: string;          // Dot-path key, e.g. "hero.title"
+  defaultValue: string;  // Value before any overrides
+  section?: string;      // Group in sidebar
+  format?: 'icu' | 'i18next' | 'plain';
+  richText?: boolean;    // Enable HTML/Markdown editing
+  description?: string;  // Shown in sidebar
+  locale?: string;       // e.g. 'en', 'fr'
+}
+```
+
+## How It Works
+
+1. **Register** strings with `useRestring()`. Each gets a unique dot-path key.
+2. **Edit** in the sidebar. Changes are stored via your chosen adapter (localStorage, REST, etc.).
+3. **Bake** with the CLI. ts-morph rewrites your source files, replacing default values with overrides.
+4. **Eject** if you want. Remove restringjs entirely and your strings are just hardcoded values. No lock-in.
+
+The bake step uses AST transforms (not regex), so it preserves your formatting, comments, and code structure.
 
 ## Configuration
 
-Create `restringjs.config.ts`:
+Optional config file for CLI defaults:
 
 ```ts
+// restringjs.config.ts
 import { defineConfig } from 'restringjs/config';
 
 export default defineConfig({
@@ -266,14 +380,26 @@ export default defineConfig({
 });
 ```
 
-## How It Works
+## Requirements
 
-1. **Register** strings with `useRestring()` — each gets a unique dot-path key
-2. **Edit** in the sidebar — changes are stored via your chosen adapter
-3. **Bake** with the CLI — ts-morph rewrites your source files, replacing defaults with overrides
-4. **Eject** — remove restringjs entirely; your strings are now hardcoded
+- React 18+ (uses `useSyncExternalStore`)
+- TypeScript 5+ recommended
+- Node.js 18+ for CLI
 
-The bake step uses AST transforms (not regex), so it preserves your formatting, comments, and code structure.
+## Contributing
+
+```bash
+git clone https://github.com/maki-q/restringjs.git
+cd restringjs
+pnpm install
+pnpm check    # typecheck + lint
+pnpm test     # run tests
+pnpm demo     # start demo app
+```
+
+## Support
+
+If you find this useful, consider [buying me a coffee](https://buymeacoffee.com/qmaki).
 
 ## License
 
