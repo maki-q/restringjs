@@ -1,7 +1,7 @@
 {
   "name": "restringjs",
-  "version": "0.1.0",
-  "description": "Live string editor for React \u2014 edit text in-context, then bake changes into code",
+  "version": "0.1.1",
+  "description": "Live string editor for React — edit text in-context, then bake changes into code",
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
