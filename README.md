@@ -1,8 +1,19 @@
+<div align="center">
+
 # restringjs
 
-Live string editor for React. Edit text in-context, then bake changes into code.
+**Live string editor for React. Edit text in-context, then bake changes into code.**
+
+[![npm version](https://img.shields.io/npm/v/restringjs?color=blue)](https://www.npmjs.com/package/restringjs)
+[![npm bundle size](https://img.shields.io/bundlephobia/minzip/restringjs)](https://bundlephobia.com/package/restringjs)
+[![CI](https://img.shields.io/github/actions/workflow/status/maki-q/restringjs/ci.yml?branch=main&label=CI)](https://github.com/maki-q/restringjs/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![TypeScript](https://img.shields.io/badge/TypeScript-strict-blue?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/maki-q/restringjs/pulls)
 
 <!-- TODO: Add hero GIF showing sidebar editing + bake workflow -->
+
+</div>
 
 **restringjs** gives your team a sidebar where they can tweak every user-facing string in your app, see changes instantly, then permanently bake those edits into your source files with a single CLI command. No CMS. No runtime overhead in production.
 
@@ -397,10 +408,16 @@ pnpm test     # run tests
 pnpm demo     # start demo app
 ```
 
-## Support
-
-If you find this useful, consider [buying me a coffee](https://buymeacoffee.com/qmaki).
-
 ## License
 
-MIT
+[MIT](./LICENSE) - Quinton Maki
+
+---
+
+<div align="center">
+
+If you find this useful, consider [buying me a coffee](https://buymeacoffee.com/qmaki) :coffee:
+
+[Report a Bug](https://github.com/maki-q/restringjs/issues) - [Request a Feature](https://github.com/maki-q/restringjs/issues) - [Discussions](https://github.com/maki-q/restringjs/discussions)
+
+</div>
