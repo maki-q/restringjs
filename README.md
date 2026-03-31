@@ -11,7 +11,9 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-strict-blue?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/maki-q/restringjs/pulls)
 
-<!-- TODO: Add hero GIF showing sidebar editing + bake workflow -->
+<p align="center">
+  <img src="media/hero.gif" alt="restringjs demo - edit strings live in a sidebar, then bake changes into code" width="720" />
+</p>
 
 </div>
 
@@ -39,7 +41,9 @@ The key insight: most string changes don't need a CMS. They need a good workflow
 
 ## Demo
 
-<!-- TODO: Add screenshot of demo app showing sidebar + highlight overlays -->
+<p align="center">
+  <img src="media/highlight.gif" alt="Highlight mode - visual overlays show which strings map to which sidebar fields" width="720" />
+</p>
 
 See all features in action without setting up a project:
 
@@ -156,7 +160,9 @@ const greeting = useRestring({
 
 The sidebar shows variable chips, validates syntax in real time, and groups plural forms with locale-aware labels.
 
-<!-- TODO: Add screenshot of ICU editing in sidebar showing variable chips + plural tabs -->
+<p align="center">
+  <img src="media/i18n.png" alt="ICU MessageFormat and i18next string editing with multi-locale support" width="720" />
+</p>
 
 ## i18next Support
 

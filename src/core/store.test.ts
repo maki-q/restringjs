@@ -134,4 +134,161 @@ describe('createStore', () => {
     store.resetField('a');
     expect(callCount).toBe(0); // No emit since nothing changed
   });
+
+  // Edge cases found during demo testing (2026-03-31)
+
+  describe('sidebar and highlight mode independence', () => {
+    it('setSidebarOpen does not reset highlightMode', () => {
+      const store = createStore();
+      // Highlight defaults to true
+      expect(store.getHighlightMode()).toBe(true);
+
+      // Turn highlight off
+      store.setHighlightMode(false);
+      expect(store.getHighlightMode()).toBe(false);
+
+      // Open sidebar - highlight should stay off
+      store.setSidebarOpen(true);
+      expect(store.getHighlightMode()).toBe(false);
+
+      // Close sidebar - highlight should stay off
+      store.setSidebarOpen(false);
+      expect(store.getHighlightMode()).toBe(false);
+    });
+
+    it('highlight mode survives sidebar close/reopen cycle', () => {
+      const store = createStore();
+
+      // Open sidebar, turn off highlights, close sidebar
+      store.setSidebarOpen(true);
+      store.setHighlightMode(false);
+      store.setSidebarOpen(false);
+
+      // Reopen sidebar - highlight should still be off
+      store.setSidebarOpen(true);
+      expect(store.getHighlightMode()).toBe(false);
+    });
+
+    it('highlight mode survives multiple sidebar toggle cycles', () => {
+      const store = createStore();
+
+      store.setSidebarOpen(true);
+      store.setHighlightMode(false);
+
+      // Toggle sidebar 5 times
+      for (let i = 0; i < 5; i++) {
+        store.setSidebarOpen(false);
+        store.setSidebarOpen(true);
+      }
+
+      expect(store.getHighlightMode()).toBe(false);
+    });
+
+    it('highlight on also survives sidebar cycles', () => {
+      const store = createStore({ defaultHighlightMode: false });
+      expect(store.getHighlightMode()).toBe(false);
+
+      // Turn on, then toggle sidebar
+      store.setHighlightMode(true);
+      store.setSidebarOpen(true);
+      store.setSidebarOpen(false);
+      store.setSidebarOpen(true);
+
+      expect(store.getHighlightMode()).toBe(true);
+    });
+  });
+
+  describe('highlight mode configuration', () => {
+    it('defaults to true when no option provided', () => {
+      const store = createStore();
+      expect(store.getHighlightMode()).toBe(true);
+    });
+
+    it('respects defaultHighlightMode: false', () => {
+      const store = createStore({ defaultHighlightMode: false });
+      expect(store.getHighlightMode()).toBe(false);
+    });
+
+    it('respects defaultHighlightMode: true', () => {
+      const store = createStore({ defaultHighlightMode: true });
+      expect(store.getHighlightMode()).toBe(true);
+    });
+  });
+
+  describe('highlight color configuration', () => {
+    it('defaults to #4a6cf7', () => {
+      const store = createStore();
+      expect(store.getHighlightColor()).toBe('#4a6cf7');
+    });
+
+    it('respects custom highlightColor', () => {
+      const store = createStore({ highlightColor: '#ff0000' });
+      expect(store.getHighlightColor()).toBe('#ff0000');
+    });
+  });
+
+  describe('snapshot caching', () => {
+    it('returns same reference when version has not changed', () => {
+      const store = createStore();
+      store.registerField({ path: 'a', defaultValue: 'A' });
+      const snap1 = store.getSnapshot();
+      const snap2 = store.getSnapshot();
+      expect(snap1).toBe(snap2); // Same reference
+    });
+
+    it('returns new reference after mutation', () => {
+      const store = createStore();
+      store.registerField({ path: 'a', defaultValue: 'A' });
+      const snap1 = store.getSnapshot();
+      store.setOverride('a', 'B');
+      const snap2 = store.getSnapshot();
+      expect(snap1).not.toBe(snap2);
+    });
+
+    it('snapshot reflects current highlightMode', () => {
+      const store = createStore();
+      expect(store.getSnapshot().highlightMode).toBe(true);
+      store.setHighlightMode(false);
+      expect(store.getSnapshot().highlightMode).toBe(false);
+    });
+
+    it('snapshot reflects current sidebarOpen', () => {
+      const store = createStore();
+      expect(store.getSnapshot().sidebarOpen).toBe(false);
+      store.setSidebarOpen(true);
+      expect(store.getSnapshot().sidebarOpen).toBe(true);
+    });
+  });
+
+  describe('no-op deduplication', () => {
+    it('setSidebarOpen does not emit when value unchanged', () => {
+      const store = createStore();
+      let callCount = 0;
+      store.subscribe(() => { callCount++; });
+
+      store.setSidebarOpen(false); // Already false
+      expect(callCount).toBe(0);
+
+      store.setSidebarOpen(true);
+      expect(callCount).toBe(1);
+
+      store.setSidebarOpen(true); // Already true
+      expect(callCount).toBe(1);
+    });
+
+    it('setHighlightMode does not emit when value unchanged', () => {
+      const store = createStore(); // Defaults to true
+      let callCount = 0;
+      store.subscribe(() => { callCount++; });
+
+      store.setHighlightMode(true); // Already true
+      expect(callCount).toBe(0);
+
+      store.setHighlightMode(false);
+      expect(callCount).toBe(1);
+
+      store.setHighlightMode(false); // Already false
+      expect(callCount).toBe(1);
+    });
+  });
 });
