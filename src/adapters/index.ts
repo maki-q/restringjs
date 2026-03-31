@@ -86,7 +86,9 @@ export function createRestAdapter(endpoint: string, options?: RequestInit): Rest
     }
   } catch (e) {
     if (e instanceof TypeError) {
-      throw new Error(`restringjs REST adapter: invalid endpoint URL "${endpoint}".`);
+      const wrapped = new Error(`restringjs REST adapter: invalid endpoint URL "${endpoint}".`);
+      (wrapped as unknown as Record<string, unknown>).cause = e;
+      throw wrapped;
     }
     throw e;
   }

@@ -16,7 +16,7 @@ async function main() {
       const fs = await import('fs');
       const overridesArg = args.find((a: string) => a.startsWith('--overrides='));
       const overridesPath = overridesArg?.split('=')[1] ?? '.restringjs-overrides.json';
-      let overrides: Record<string, string> = {};
+      const overrides: Record<string, string> = {};
       try {
         const raw: unknown = JSON.parse(fs.readFileSync(overridesPath, 'utf-8'));
         if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
