@@ -89,3 +89,31 @@ describe('unflattenObject', () => {
     expect(result).toEqual(original);
   });
 });
+
+describe('prototype pollution protection', () => {
+  it('applyOverrides ignores __proto__ keys', () => {
+    const original = { title: 'Hello' };
+    const result = applyOverrides(original, { '__proto__.polluted': 'yes' });
+    expect(result).toEqual({ title: 'Hello' });
+    expect(({} as Record<string, unknown>)['polluted']).toBeUndefined();
+  });
+
+  it('applyOverrides ignores constructor keys', () => {
+    const original = { title: 'Hello' };
+    const result = applyOverrides(original, { 'constructor.prototype.polluted': 'yes' });
+    expect(result).toEqual({ title: 'Hello' });
+  });
+
+  it('unflattenObject ignores __proto__ paths', () => {
+    const result = unflattenObject({ '__proto__.polluted': 'yes', 'safe.key': 'ok' });
+    expect(result).toEqual({ safe: { key: 'ok' } });
+    expect(({} as Record<string, unknown>)['polluted']).toBeUndefined();
+  });
+
+  it('flattenObject skips __proto__ keys', () => {
+    const obj = { safe: 'yes' };
+    Object.defineProperty(obj, '__proto__', { value: { evil: 'no' }, enumerable: true });
+    const result = flattenObject(obj);
+    expect(result).toEqual({ safe: 'yes' });
+  });
+});

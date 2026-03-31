@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { createMemoryAdapter, createLocalStorageAdapter } from './index';
+import { createMemoryAdapter, createLocalStorageAdapter, createRestAdapter } from './index';
 
 function createMockStorage(): Storage {
   const data = new Map<string, string>();
@@ -74,5 +74,27 @@ describe('createLocalStorageAdapter', () => {
     mockStorage.setItem('test-bad-json', 'not-json');
     const adapter = createLocalStorageAdapter('test-bad-json', mockStorage);
     expect(await adapter.load()).toEqual({});
+  });
+
+  it('strips non-string values from stored data', async () => {
+    mockStorage.setItem('test-mixed', JSON.stringify({ good: 'yes', bad: 42, nested: { x: 1 } }));
+    const adapter = createLocalStorageAdapter('test-mixed', mockStorage);
+    expect(await adapter.load()).toEqual({ good: 'yes' });
+  });
+});
+
+describe('createRestAdapter', () => {
+  it('rejects non-http schemes', () => {
+    expect(() => createRestAdapter('file:///etc/passwd')).toThrow('unsupported protocol');
+    expect(() => createRestAdapter('ftp://example.com')).toThrow('unsupported protocol');
+  });
+
+  it('rejects invalid URLs', () => {
+    expect(() => createRestAdapter('not a url')).toThrow('invalid endpoint URL');
+  });
+
+  it('accepts http and https URLs', () => {
+    expect(() => createRestAdapter('http://localhost:3000/api')).not.toThrow();
+    expect(() => createRestAdapter('https://example.com/api')).not.toThrow();
   });
 });

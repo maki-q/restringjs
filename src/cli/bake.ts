@@ -1,4 +1,7 @@
 import type { OverrideMap } from '../core/types';
+import { resolve, extname } from 'path';
+
+const ALLOWED_EXTENSIONS = new Set(['.ts', '.tsx', '.js', '.jsx']);
 
 /**
  * Bake overrides into source files using AST transforms.
@@ -8,10 +11,12 @@ export async function bake(options: {
   source: string[];
   overrides: OverrideMap;
   dryRun?: boolean;
+  projectRoot?: string;
 }): Promise<{ modified: string[]; skipped: string[] }> {
   // Dynamic import to keep ts-morph out of the browser bundle
   const { Project, SyntaxKind } = await import('ts-morph');
   const project = new Project({ useInMemoryFileSystem: false });
+  const root = resolve(options.projectRoot ?? process.cwd());
 
   const modified: string[] = [];
   const skipped: string[] = [];
@@ -21,6 +26,21 @@ export async function bake(options: {
   }
 
   for (const sourceFile of project.getSourceFiles()) {
+    const filePath = resolve(sourceFile.getFilePath());
+
+    // Validate file stays within project root
+    if (!filePath.startsWith(root)) {
+      process.stderr.write(`Skipping ${filePath}: outside project root ${root}\n`);
+      skipped.push(filePath);
+      continue;
+    }
+
+    // Validate file extension
+    if (!ALLOWED_EXTENSIONS.has(extname(filePath))) {
+      skipped.push(filePath);
+      continue;
+    }
+
     let fileModified = false;
 
     // Find string literals and template literals that match override keys
@@ -85,5 +105,12 @@ function resolvePropertyPath(node: { getName(): string; getParent(): { getKind()
 }
 
 function escapeString(str: string): string {
-  return str.replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/\n/g, '\\n');
+  return str
+    .replace(/\\/g, '\\\\')
+    .replace(/'/g, "\\'")
+    .replace(/\n/g, '\\n')
+    .replace(/\r/g, '\\r')
+    .replace(/\0/g, '\\0')
+    .replace(/\u2028/g, '\\u2028')
+    .replace(/\u2029/g, '\\u2029');
 }

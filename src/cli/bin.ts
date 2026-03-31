@@ -16,11 +16,26 @@ async function main() {
       const fs = await import('fs');
       const overridesArg = args.find((a: string) => a.startsWith('--overrides='));
       const overridesPath = overridesArg?.split('=')[1] ?? '.restringjs-overrides.json';
-      let overrides = {};
+      let overrides: Record<string, string> = {};
       try {
-        overrides = JSON.parse(fs.readFileSync(overridesPath, 'utf-8'));
-      } catch {
-        process.stderr.write(`Could not load overrides from ${overridesPath}\n`);
+        const raw: unknown = JSON.parse(fs.readFileSync(overridesPath, 'utf-8'));
+        if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
+          process.stderr.write(`Invalid overrides: expected a JSON object\n`);
+          process.exit(1);
+        }
+        for (const [k, v] of Object.entries(raw as Record<string, unknown>)) {
+          if (typeof v !== 'string') {
+            process.stderr.write(`Invalid override value for "${k}": expected string, got ${typeof v}\n`);
+            process.exit(1);
+          }
+          overrides[k] = v;
+        }
+      } catch (err) {
+        if ((err as { code?: string }).code === 'ENOENT') {
+          process.stderr.write(`Could not load overrides from ${overridesPath}\n`);
+        } else {
+          process.stderr.write(`Error reading overrides: ${err}\n`);
+        }
         process.exit(1);
       }
       const result = await bake({ source: sources, overrides, dryRun });
