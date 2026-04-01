@@ -1,4 +1,4 @@
-import { useEffect, useSyncExternalStore } from 'react';
+import { useEffect, useRef, useSyncExternalStore } from 'react';
 import type { FieldConfig, FieldPath, SectionConfig } from '../core/types';
 import { useRestringContext } from './context';
 
@@ -8,10 +8,12 @@ import { useRestringContext } from './context';
  */
 export function useRestring(config: FieldConfig): string {
   const ctx = useRestringContext();
+  const ctxRef = useRef(ctx);
+  ctxRef.current = ctx;
 
   useEffect(() => {
-    return ctx.registerField(config);
-  }, [ctx, config.path, config.defaultValue, config.section, config.format]);
+    return ctxRef.current.registerField(config);
+  }, [config.path, config.defaultValue, config.section, config.format]);
 
   const value = useSyncExternalStore(
     ctx.subscribe,
@@ -37,10 +39,12 @@ export function useRegister(config: FieldConfig): [string, (value: string) => vo
  */
 export function useRegisterSection(config: SectionConfig): void {
   const ctx = useRestringContext();
+  const ctxRef = useRef(ctx);
+  ctxRef.current = ctx;
 
   useEffect(() => {
-    return ctx.registerSection(config);
-  }, [ctx, config.id, config.label, config.order]);
+    return ctxRef.current.registerSection(config);
+  }, [config.id, config.label, config.order]);
 }
 
 /**
