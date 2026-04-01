@@ -42,9 +42,15 @@ export function createStore(options?: StoreOptions) {
 
   function registerField(config: FieldConfig): () => void {
     fields.set(config.path, config);
+    // If overrides were already loaded and this field has one that
+    // differs from default, mark it dirty immediately.
+    if (config.path in overrides && overrides[config.path] !== config.defaultValue) {
+      dirty.add(config.path);
+    }
     emit();
     return () => {
       fields.delete(config.path);
+      dirty.delete(config.path);
       emit();
     };
   }
@@ -99,7 +105,16 @@ export function createStore(options?: StoreOptions) {
 
   function setOverrides(newOverrides: OverrideMap): void {
     overrides = { ...newOverrides };
+    // Recompute dirty set: any loaded override that differs from its
+    // registered default is "persisted but different" and should show
+    // as an active edit (green badge + reset link).
     dirty.clear();
+    for (const [path, value] of Object.entries(overrides)) {
+      const field = fields.get(path);
+      if (field && value !== field.defaultValue) {
+        dirty.add(path);
+      }
+    }
     emit();
   }
 
