@@ -19,7 +19,7 @@ export type { RestringStore } from './core/store';
 export { applyOverrides, flattenObject, unflattenObject } from './core/apply';
 
 // React
-export { RestringProvider } from './react/provider';
+export { RestringProvider, type OverrideChangeCallback } from './react/provider';
 export { RestringContext, useRestringContext } from './react/context';
 export { useRestring, useRegister, useRegisterSection, useFieldValue, useSnapshot } from './react/hooks';
 

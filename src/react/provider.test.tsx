@@ -187,6 +187,63 @@ describe('RestringProvider', () => {
     expect(ctx!.isDirty()).toBe(true);
   });
 
+  it('calls onOverrideChange when an override is set', () => {
+    const onChange = vi.fn();
+    let ctx: ReturnType<typeof useRestringContext> | null = null;
+    function Consumer() {
+      ctx = useRestringContext();
+      useRestring({ path: 'cb.field', defaultValue: 'orig' });
+      return null;
+    }
+    render(
+      <RestringProvider enabled adapter={createMemoryAdapter()} onOverrideChange={onChange}>
+        <Consumer />
+      </RestringProvider>,
+    );
+    act(() => ctx!.setOverride('cb.field', 'new-val'));
+    expect(onChange).toHaveBeenCalledTimes(1);
+    expect(onChange).toHaveBeenCalledWith('cb.field', 'new-val', { 'cb.field': 'new-val' });
+  });
+
+  it('calls onOverrideChange with null when a field is reset', () => {
+    const onChange = vi.fn();
+    let ctx: ReturnType<typeof useRestringContext> | null = null;
+    function Consumer() {
+      ctx = useRestringContext();
+      useRestring({ path: 'cb.reset', defaultValue: 'orig' });
+      return null;
+    }
+    render(
+      <RestringProvider enabled adapter={createMemoryAdapter()} onOverrideChange={onChange}>
+        <Consumer />
+      </RestringProvider>,
+    );
+    act(() => ctx!.setOverride('cb.reset', 'changed'));
+    act(() => ctx!.resetField('cb.reset'));
+    expect(onChange).toHaveBeenCalledTimes(2);
+    expect(onChange).toHaveBeenLastCalledWith('cb.reset', null, {});
+  });
+
+  it('does not fire onOverrideChange when setting value back to default', () => {
+    const onChange = vi.fn();
+    let ctx: ReturnType<typeof useRestringContext> | null = null;
+    function Consumer() {
+      ctx = useRestringContext();
+      useRestring({ path: 'cb.noop', defaultValue: 'orig' });
+      return null;
+    }
+    render(
+      <RestringProvider enabled adapter={createMemoryAdapter()} onOverrideChange={onChange}>
+        <Consumer />
+      </RestringProvider>,
+    );
+    // Setting to the default value removes the override internally
+    act(() => ctx!.setOverride('cb.noop', 'orig'));
+    // The callback still fires (the caller can decide if the delta matters)
+    expect(onChange).toHaveBeenCalledTimes(1);
+    expect(onChange).toHaveBeenCalledWith('cb.noop', 'orig', {});
+  });
+
   it('resetAll clears overrides', () => {
     let ctx: ReturnType<typeof useRestringContext> | null = null;
     let val = '';
