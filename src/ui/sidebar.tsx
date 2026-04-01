@@ -204,11 +204,14 @@ export function RestringSidebar({
                   value={snapshot.overrides[path] ?? config.defaultValue}
                   isDirty={snapshot.dirty.has(path)}
                   isHighlighted={ctx.highlightedField === path}
+                  isHighlightHidden={snapshot.hiddenHighlights.has(path)}
+                  highlightMode={highlightMode}
                   highlightColor={ctx.highlightColor}
                   onFocus={() => ctx.setHighlightedField(path)}
                   onBlur={() => ctx.setHighlightedField(null)}
                   onChange={(val) => ctx.setOverride(path, val)}
                   onReset={() => ctx.resetField(path)}
+                  onToggleHighlight={() => ctx.toggleHighlightHidden(path)}
                 />
               ))}
             </div>
@@ -240,14 +243,17 @@ interface FieldEditorProps {
   value: string;
   isDirty: boolean;
   isHighlighted: boolean;
+  isHighlightHidden: boolean;
+  highlightMode: boolean;
   highlightColor: string;
   onFocus: () => void;
   onBlur: () => void;
   onChange: (value: string) => void;
   onReset: () => void;
+  onToggleHighlight: () => void;
 }
 
-function FieldEditor({ path, config, value, isDirty, isHighlighted, highlightColor, onFocus, onBlur, onChange, onReset }: FieldEditorProps) {
+function FieldEditor({ path, config, value, isDirty, isHighlighted, isHighlightHidden, highlightMode, highlightColor, onFocus, onBlur, onChange, onReset, onToggleHighlight }: FieldEditorProps) {
   const isRtl = detectRtl(value);
 
   return (
@@ -267,22 +273,43 @@ function FieldEditor({ path, config, value, isDirty, isHighlighted, highlightCol
           {path}
           {isDirty && <span style={{ color: '#e67e22', marginLeft: '4px' }}>●</span>}
         </label>
-        {isDirty && (
-          <button
-            type="button"
-            onClick={onReset}
-            style={{
-              fontSize: '10px',
-              color: '#999',
-              background: 'none',
-              border: 'none',
-              cursor: 'pointer',
-              textDecoration: 'underline',
-            }}
-          >
-            reset
-          </button>
-        )}
+        <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+          {highlightMode && (
+            <button
+              type="button"
+              onClick={onToggleHighlight}
+              style={{
+                fontSize: '12px',
+                color: isHighlightHidden ? '#ccc' : '#666',
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                padding: '0 2px',
+                lineHeight: 1,
+              }}
+              title={isHighlightHidden ? 'Show highlight overlay' : 'Hide highlight overlay'}
+              aria-label={isHighlightHidden ? `Show highlight for ${path}` : `Hide highlight for ${path}`}
+            >
+              {isHighlightHidden ? '👁‍🗨' : '👁'}
+            </button>
+          )}
+          {isDirty && (
+            <button
+              type="button"
+              onClick={onReset}
+              style={{
+                fontSize: '10px',
+                color: '#999',
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                textDecoration: 'underline',
+              }}
+            >
+              reset
+            </button>
+          )}
+        </div>
       </div>
       {config.richText ? (
         <textarea

@@ -58,6 +58,7 @@ export interface StoreSnapshot {
   dirty: Set<FieldPath>;
   sidebarOpen: boolean;
   highlightMode: boolean;
+  hiddenHighlights: Set<FieldPath>;
 }
 
 /**
@@ -128,6 +129,10 @@ export interface RestringContextValue {
   setHighlightMode(on: boolean): void;
   /** Highlight overlay color (CSS color string) */
   highlightColor: string;
+  /** Toggle whether a field's highlight overlay is hidden */
+  toggleHighlightHidden(path: FieldPath): void;
+  /** Check if a field's highlight is hidden */
+  isHighlightHidden(path: FieldPath): boolean;
 }
 
 /**

@@ -15,9 +15,11 @@ interface RestringHighlightProps {
  * Returns bounding rects that span from the first fragment to the last.
  */
 function matchTemplateInDom(fragments: string[]): DOMRect[] {
-  // Filter to non-empty fragments
+  // Filter to non-empty fragments - require at least 2 for reliable cross-sibling matching.
+  // Single-fragment templates (e.g. "Back to {name}") are too ambiguous and would match
+  // overly broad ranges. They fall back to exact text-node matching only.
   const nonEmpty = fragments.filter((f) => f.trim().length > 0);
-  if (nonEmpty.length === 0) return [];
+  if (nonEmpty.length < 2) return [];
 
   const results: DOMRect[] = [];
   // Use Set to avoid checking the same parent multiple times
@@ -40,8 +42,8 @@ function matchTemplateInDom(fragments: string[]): DOMRect[] {
     const text = node.textContent ?? '';
     if (!text.includes(firstFrag)) continue;
 
-    // Walk up to find the common container - typically the immediate parent element
-    const container = node.parentElement?.parentElement ?? node.parentElement;
+    // Walk up to find the common container - the immediate parent element
+    const container = node.parentElement;
     if (!container || checkedParents.has(container)) continue;
     checkedParents.add(container);
 
@@ -132,6 +134,8 @@ export function RestringHighlight({ enabled = true }: RestringHighlightProps) {
     const fieldValues = new Map<string, FieldPath[]>();
 
     for (const [path, config] of snapshot.fields) {
+      // Skip fields whose highlights are hidden by the user
+      if (snapshot.hiddenHighlights.has(path)) continue;
       const currentValue = snapshot.overrides[path] ?? config.defaultValue;
       if (currentValue) {
         const existing = fieldValues.get(currentValue);

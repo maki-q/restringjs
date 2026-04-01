@@ -28,6 +28,7 @@ export function createStore(options?: StoreOptions) {
   let sidebarOpen = false;
   let highlightMode = options?.defaultHighlightMode ?? true;
   const highlightColor = options?.highlightColor ?? '#4a6cf7';
+  const hiddenHighlights = new Set<FieldPath>();
   let version = 0;
   let cachedSnapshot: StoreSnapshot | null = null;
   let cachedSnapshotVersion = -1;
@@ -136,6 +137,23 @@ export function createStore(options?: StoreOptions) {
     return highlightColor;
   }
 
+  function toggleHighlightHidden(path: FieldPath): void {
+    if (hiddenHighlights.has(path)) {
+      hiddenHighlights.delete(path);
+    } else {
+      hiddenHighlights.add(path);
+    }
+    emit();
+  }
+
+  function isHighlightHidden(path: FieldPath): boolean {
+    return hiddenHighlights.has(path);
+  }
+
+  function getHiddenHighlights(): Set<FieldPath> {
+    return new Set(hiddenHighlights);
+  }
+
   function getSnapshot(): StoreSnapshot {
     if (cachedSnapshotVersion === version && cachedSnapshot) {
       return cachedSnapshot;
@@ -147,6 +165,7 @@ export function createStore(options?: StoreOptions) {
       dirty: new Set(dirty),
       sidebarOpen,
       highlightMode,
+      hiddenHighlights: new Set(hiddenHighlights),
     };
     cachedSnapshotVersion = version;
     return cachedSnapshot;
@@ -178,6 +197,9 @@ export function createStore(options?: StoreOptions) {
     setHighlightMode,
     getHighlightMode,
     getHighlightColor,
+    toggleHighlightHidden,
+    isHighlightHidden,
+    getHiddenHighlights,
     getSnapshot,
     subscribe,
     getVersion,

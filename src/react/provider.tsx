@@ -59,6 +59,8 @@ export function RestringProvider({ enabled, adapter, defaultHighlightMode, highl
     highlightMode: storeRef.current.getHighlightMode(),
     setHighlightMode: (on: boolean) => storeRef.current.setHighlightMode(on),
     highlightColor: storeRef.current.getHighlightColor(),
+    toggleHighlightHidden: (path: FieldPath) => storeRef.current.toggleHighlightHidden(path),
+    isHighlightHidden: (path: FieldPath) => storeRef.current.isHighlightHidden(path),
   }), [enabled, save, loadOverrides, highlightedField]);
 
   if (!enabled) {
