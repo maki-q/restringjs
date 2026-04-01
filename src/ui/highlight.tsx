@@ -7,6 +7,58 @@ interface RestringHighlightProps {
   enabled?: boolean;
 }
 
+/** Block-level elements whose textContent is worth comparing against field values */
+const BLOCK_SELECTORS = 'div, section, article, main, aside, p, li, td, th, blockquote, details, figcaption, header, footer, nav, dd, dt';
+
+/**
+ * Strip common markup (markdown, basic HTML tags) from a string to produce
+ * normalized plain text for comparison against DOM textContent.
+ */
+function stripMarkup(value: string): string {
+  let s = value;
+  // Markdown links: [text](url) -> text
+  s = s.replace(/\[([^\]]+)\]\([^)]+\)/g, '$1');
+  // Markdown images: ![alt](url) -> alt
+  s = s.replace(/!\[([^\]]*)\]\([^)]+\)/g, '$1');
+  // HTML tags
+  s = s.replace(/<[^>]+>/g, '');
+  // Headings: ## text -> text
+  s = s.replace(/^#{1,6}\s+/gm, '');
+  // Bold/italic: **text**, *text*, __text__, _text_
+  s = s.replace(/(\*{1,3}|_{1,3})(.+?)\1/g, '$2');
+  // Inline code: `text`
+  s = s.replace(/`([^`]+)`/g, '$1');
+  // Strikethrough: ~~text~~
+  s = s.replace(/~~(.+?)~~/g, '$1');
+  // Horizontal rules
+  s = s.replace(/^[-*_]{3,}\s*$/gm, '');
+  // Blockquotes: > text -> text
+  s = s.replace(/^>\s?/gm, '');
+  // Unordered list markers
+  s = s.replace(/^[\s]*[-*+]\s+/gm, '');
+  // Ordered list markers
+  s = s.replace(/^[\s]*\d+\.\s+/gm, '');
+  // Collapse whitespace
+  s = s.replace(/\s+/g, ' ').trim();
+  return s;
+}
+
+/**
+ * Normalize DOM textContent for comparison: collapse whitespace sequences.
+ */
+function normalizeText(text: string): string {
+  return text.replace(/\s+/g, ' ').trim();
+}
+
+/**
+ * Aggressive normalization for fuzzy comparison: remove ALL whitespace.
+ * Used when rich content renderers insert empty spacer elements between
+ * paragraphs, causing textContent to join text without separators.
+ */
+function stripAllWhitespace(text: string): string {
+  return text.replace(/\s+/g, '');
+}
+
 /**
  * Match interpolation template fragments across adjacent sibling DOM nodes.
  * For a template like "Follow {handle} for more." with fragments ["Follow ", " for more."],
@@ -219,6 +271,63 @@ export function RestringHighlight({ enabled = true }: RestringHighlightProps) {
       }
     }
 
+    // Phase 3: Container textContent fallback for rich content (markdown, HTML).
+    // Fields whose values contain markup syntax that gets rendered into multiple
+    // DOM elements won't match via text-node or template phases. We strip markup
+    // from the field value and compare against the normalized textContent of
+    // block-level containers. Only runs for unmatched fields to avoid double-highlighting.
+    const matchedPaths = new Set(found.map((o) => o.path));
+    const unmatchedRich: { path: FieldPath; strippedText: string; minLen: number }[] = [];
+
+    for (const [value, paths] of fieldValues) {
+      for (const path of paths) {
+        if (matchedPaths.has(path)) continue;
+        // Only attempt rich matching if the value looks like it has markup
+        const stripped = stripMarkup(value);
+        if (stripped !== value.replace(/\s+/g, ' ').trim() && stripped.length > 10) {
+          // Pre-compute whitespace-stripped text and minimum length threshold
+          // once per field rather than per block element
+          const fieldStripped = stripAllWhitespace(stripped);
+          unmatchedRich.push({ path, strippedText: fieldStripped, minLen: fieldStripped.length });
+        }
+      }
+    }
+
+    if (unmatchedRich.length > 0) {
+      // Find the shortest field to quickly skip blocks that are too small
+      const globalMinLen = Math.min(...unmatchedRich.map((f) => f.minLen));
+
+      const blocks = document.querySelectorAll<HTMLElement>(BLOCK_SELECTORS);
+      for (const el of blocks) {
+        if (el.closest('.restringjs-sidebar, .restringjs-toggle, .restringjs-highlight-overlay')) continue;
+        const rawText = el.textContent ?? '';
+        if (rawText.length === 0) continue;
+
+        // Strip whitespace once per block element, skip if too short for any field
+        const elStripped = stripAllWhitespace(rawText);
+        if (elStripped.length < globalMinLen) continue;
+
+        for (let i = unmatchedRich.length - 1; i >= 0; i--) {
+          const { path, strippedText, minLen } = unmatchedRich[i]!;
+          if (matchedPaths.has(path)) continue;
+
+          // Length gate: block must be at least as long as field and within 20%
+          if (elStripped.length < minLen || elStripped.length > minLen * 1.2) continue;
+
+          if (elStripped === strippedText || elStripped.includes(strippedText)) {
+            const rect = el.getBoundingClientRect();
+            if (rect.width > 0 && rect.height > 0) {
+              found.push({ path, rect });
+              matchedPaths.add(path);
+              unmatchedRich.splice(i, 1);
+            }
+          }
+        }
+
+        if (unmatchedRich.length === 0) break;
+      }
+    }
+
     setOverlays(found);
   }, [active]);
 
@@ -240,8 +349,18 @@ export function RestringHighlight({ enabled = true }: RestringHighlightProps) {
     // ghost overlays at pre-animation positions. We use getAnimations()
     // when available, with a 2s timeout fallback for older browsers or
     // long-running infinite animations.
+    //
+    // During this wait period, suppress scans from MutationObserver and
+    // other events - they'd just waste cycles on unstable layout.
     let cancelled = false;
-    const unsub = ctxRef.current.subscribe(() => scanDom());
+    let ready = false;
+    // Store changes (field registration, overrides) always trigger a scan
+    // since they indicate data changes, not layout instability.
+    const unsub = ctxRef.current.subscribe(() => debouncedScan());
+    // Layout events (scroll, resize, mutations) are gated behind the
+    // animation wait to avoid wasting cycles on unstable layout.
+    const gatedScan = () => { if (ready) debouncedScan(); };
+
     const waitForAnimations = async () => {
       try {
         if (typeof document.getAnimations === 'function') {
@@ -253,10 +372,10 @@ export function RestringHighlight({ enabled = true }: RestringHighlightProps) {
               new Promise((r) => setTimeout(r, 2000)),
             ]);
           }
-        } else {
-          // Fallback: simple delay for browsers without getAnimations
-          await new Promise((r) => setTimeout(r, 500));
         }
+        // No else/fallback: if getAnimations is unavailable (jsdom, old
+        // browsers), skip the wait entirely - there are no animations to
+        // interfere with layout measurement.
       } catch {
         // getAnimations or .finished can throw on cancelled animations - safe to ignore
       }
@@ -264,13 +383,16 @@ export function RestringHighlight({ enabled = true }: RestringHighlightProps) {
       // has a chance to capture field registrations that fire synchronously
       // in sibling effects before this effect ran.
       await Promise.resolve();
-      if (!cancelled) scanDom();
+      if (!cancelled) {
+        ready = true;
+        scanDom();
+      }
     };
     waitForAnimations();
 
     // Watch DOM changes including attribute mutations (class/style toggles
     // that show/hide content or change layout, <details> open/close, etc.)
-    const observer = new MutationObserver(() => debouncedScan());
+    const observer = new MutationObserver(() => gatedScan());
     observer.observe(document.body, {
       childList: true,
       subtree: true,
@@ -279,28 +401,28 @@ export function RestringHighlight({ enabled = true }: RestringHighlightProps) {
       attributeFilter: ['class', 'style', 'hidden', 'open'],
     });
 
-    const onScroll = () => debouncedScan();
+    const onScroll = () => gatedScan();
     window.addEventListener('scroll', onScroll, true);
     window.addEventListener('resize', onScroll);
 
     // Capture-phase load listener catches image/iframe/video load events
     // that cause layout shifts without DOM mutations
-    document.addEventListener('load', debouncedScan, true);
+    document.addEventListener('load', gatedScan, true);
 
     // CSS animations/transitions move elements without triggering mutations
-    document.addEventListener('animationend', debouncedScan, true);
-    document.addEventListener('transitionend', debouncedScan, true);
+    document.addEventListener('animationend', gatedScan, true);
+    document.addEventListener('transitionend', gatedScan, true);
 
     // Web font loading causes text reflow without any DOM event
     if (typeof document.fonts?.ready?.then === 'function') {
-      document.fonts.ready.then(() => debouncedScan());
+      document.fonts.ready.then(() => gatedScan());
     }
 
     // ResizeObserver on body catches any child element size changes
     // (e.g. lazy images expanding from 0x0, font loading, async content)
     let resizeObserver: ResizeObserver | undefined;
     if (typeof ResizeObserver !== 'undefined') {
-      resizeObserver = new ResizeObserver(() => debouncedScan());
+      resizeObserver = new ResizeObserver(() => gatedScan());
       resizeObserver.observe(document.body);
     }
 
@@ -311,9 +433,9 @@ export function RestringHighlight({ enabled = true }: RestringHighlightProps) {
       resizeObserver?.disconnect();
       window.removeEventListener('scroll', onScroll, true);
       window.removeEventListener('resize', onScroll);
-      document.removeEventListener('load', debouncedScan, true);
-      document.removeEventListener('animationend', debouncedScan, true);
-      document.removeEventListener('transitionend', debouncedScan, true);
+      document.removeEventListener('load', gatedScan, true);
+      document.removeEventListener('animationend', gatedScan, true);
+      document.removeEventListener('transitionend', gatedScan, true);
       if (scanTimerRef.current) clearTimeout(scanTimerRef.current);
     };
   }, [active, scanDom, debouncedScan]);
