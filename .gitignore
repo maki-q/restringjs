@@ -4,3 +4,5 @@ dist
 .DS_Store
 coverage
 .npmrc
+.restringjs-overrides.json
+bake-validation-report.md

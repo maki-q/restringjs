@@ -29,7 +29,8 @@ The key insight: most string changes don't need a CMS. They need a good workflow
 
 - **Live editing sidebar** with search, filtering, and section grouping
 - **Zero bytes in production** - the sidebar tree-shakes completely when disabled
-- **Bake & eject** - AST transforms apply overrides directly into source files, preserving formatting and comments
+- **Bake & eject** - AST transforms apply overrides directly into source files, preserving formatting, comments, and quote style. Handles nested objects, arrays, and `as const`
+- **Full CLI toolkit** - `bake`, `diff`, `validate`, `export`, `import`, `clear` with `--prefix` support for bridging DB key formats
 - **ICU MessageFormat** - syntax validation, variable chips, plural grouping with locale-aware labels
 - **i18next support** - auto-detects `{{variable}}` and `$t()` patterns
 - **Visual highlight mode** - overlay registered DOM elements, click to jump to the editor
@@ -282,31 +283,83 @@ export const getServerSideProps = async () => {
 
 ## CLI
 
+Every command supports `--help` for full usage details.
+
+### `bake` - Write overrides into source files
+
+AST transform via ts-morph. Preserves formatting, comments, quote style, and code structure. Handles nested objects, arrays, `as const`, and deeply nested paths.
+
 ```bash
-# Bake overrides into source files (AST transform, preserves formatting)
+# Bake overrides into source files
 npx restringjs bake "src/**/*.tsx"
 
 # Dry run - preview what would change without writing
 npx restringjs bake "src/**/*.tsx" --dry-run
 
-# Use a custom overrides file (default: .restringjs-overrides.json)
+# Custom overrides file (default: .restringjs-overrides.json)
 npx restringjs bake "src/**/*.tsx" --overrides=my-overrides.json
 
-# Show diffs between source defaults and current overrides
-npx restringjs diff
-
-# Check for stale overrides (keys that no longer exist in source)
-npx restringjs validate
-
-# Export current overrides to JSON
-npx restringjs export > overrides.json
-
-# Import overrides from JSON
-npx restringjs import < overrides.json
-
-# Clear all stored overrides
-npx restringjs clear
+# Bridge DB key format to source variable names
+# If your DB stores "home.title" but source has `const strings = { home: { title: "..." } }`:
+npx restringjs bake "src/**/*.ts" --prefix=strings
 ```
+
+Bake reports unmatched override keys to stderr so you know if any overrides didn't find a matching path in source.
+
+### `diff` - Compare source strings against overrides
+
+```bash
+npx restringjs diff "src/**/*.ts" --overrides=overrides.json
+npx restringjs diff "src/**/*.ts" --overrides=overrides.json --prefix=strings
+```
+
+Prints a colored table showing path, original value, and override value for each changed field.
+
+### `validate` - Check for stale or empty overrides
+
+```bash
+npx restringjs validate "src/**/*.ts" --overrides=overrides.json
+npx restringjs validate "src/**/*.ts" --overrides=overrides.json --prefix=strings
+```
+
+Flags stale keys (overrides referencing paths that no longer exist in source) and empty values. Exits with code 1 if any issues found - useful in CI.
+
+### `export` - Extract all strings from source
+
+```bash
+# Print to stdout
+npx restringjs export "src/**/*.ts"
+
+# Write to file
+npx restringjs export "src/**/*.ts" --output=strings.json
+
+# Strip variable prefix from keys
+npx restringjs export "src/**/*.ts" --prefix=strings
+```
+
+Walks source files and extracts every string literal with its dot-path. Use this to bootstrap an overrides file or audit what's editable.
+
+### `import` - Merge overrides into a file
+
+```bash
+npx restringjs import --overrides=new-overrides.json
+npx restringjs import --overrides=new-overrides.json --target=.restringjs-overrides.json
+```
+
+Reads a JSON override map and merges it into the target file (default `.restringjs-overrides.json`).
+
+### `clear` - Reset override file
+
+```bash
+npx restringjs clear
+npx restringjs clear --target=.restringjs-overrides.json
+```
+
+Writes `{}` to the target file.
+
+### The `--prefix` flag
+
+Many apps store override keys without the source variable name (e.g. `home.title` in the database) while the AST resolver produces paths that include it (e.g. `strings.home.title`). The `--prefix` flag bridges this gap across all commands that work with both source files and overrides (`bake`, `diff`, `validate`, `export`).
 
 ## API Reference
 
@@ -402,6 +455,17 @@ export default defineConfig({
 - React 18+ (uses `useSyncExternalStore`)
 - TypeScript 5+ recommended
 - Node.js 18+ for CLI
+
+## Roadmap to 1.0
+
+The following are planned before a stable 1.0 release:
+
+- **Template literal support in bake** - Currently, backtick strings (`` `Hello ${name}` ``) are gracefully skipped. Plain backtick strings without interpolation (`NoSubstitutionTemplateLiteral`) should be replaceable.
+- **Full ICU MessageFormat validation** - Current validation is brace-matching only. A proper AST parse would catch malformed plural/select syntax before save.
+- **import/clear for non-file adapters** - `import` and `clear` CLI commands only support file-based targets today. localStorage and REST adapter support is planned.
+- **CHANGELOG** - Proper release-by-release changelog (started in CHANGELOG.md, will be fleshed out with each release).
+
+If any of these are blocking your use case, [open an issue](https://github.com/maki-q/restringjs/issues).
 
 ## Contributing
 

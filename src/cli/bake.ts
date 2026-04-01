@@ -12,7 +12,8 @@ export async function bake(options: {
   overrides: OverrideMap;
   dryRun?: boolean;
   projectRoot?: string;
-}): Promise<{ modified: string[]; skipped: string[] }> {
+  prefix?: string;
+}): Promise<{ modified: string[]; skipped: string[]; unmatched: string[] }> {
   // Dynamic import to keep ts-morph out of the browser bundle
   const { Project, SyntaxKind } = await import('ts-morph');
   const project = new Project({ useInMemoryFileSystem: false });
@@ -20,6 +21,18 @@ export async function bake(options: {
 
   const modified: string[] = [];
   const skipped: string[] = [];
+
+  // Build effective overrides map, applying prefix if provided
+  const effectiveOverrides: OverrideMap = {};
+  const originalKeyMap = new Map<string, string>(); // effectiveKey -> originalKey
+  for (const [key, value] of Object.entries(options.overrides)) {
+    const effectiveKey = options.prefix ? `${options.prefix}.${key}` : key;
+    effectiveOverrides[effectiveKey] = value;
+    originalKeyMap.set(effectiveKey, key);
+  }
+
+  // Track which override keys were matched
+  const matchedKeys = new Set<string>();
 
   for (const pattern of options.source) {
     project.addSourceFilesAtPaths(pattern);
@@ -54,14 +67,18 @@ export async function bake(options: {
 
     for (const prop of propertyAssignments) {
       // Check nested paths by walking up the AST
-      const fullPath = resolvePropertyPath(prop);
+      const fullPath = resolvePropertyPath(prop, SyntaxKind);
 
-      if (fullPath && fullPath in options.overrides) {
+      if (fullPath && fullPath in effectiveOverrides) {
         const initializer = prop.getInitializer();
         if (initializer?.getKind() === SyntaxKind.StringLiteral) {
-          const overrideValue = options.overrides[fullPath]!;
+          const overrideValue = effectiveOverrides[fullPath]!;
+          matchedKeys.add(fullPath);
           if (!options.dryRun) {
-            initializer.replaceWithText(`'${escapeString(overrideValue)}'`);
+            // Detect original quote style
+            const originalText = initializer.getFullText().trim();
+            const quoteChar = originalText.startsWith('"') ? '"' : "'";
+            initializer.replaceWithText(`${quoteChar}${escapeString(overrideValue, quoteChar)}${quoteChar}`);
           }
           fileModified = true;
         }
@@ -78,24 +95,55 @@ export async function bake(options: {
     }
   }
 
-  return { modified, skipped };
+  // Determine unmatched keys (using original keys, not prefixed)
+  const unmatched: string[] = [];
+  for (const effectiveKey of Object.keys(effectiveOverrides)) {
+    if (!matchedKeys.has(effectiveKey)) {
+      unmatched.push(originalKeyMap.get(effectiveKey) ?? effectiveKey);
+    }
+  }
+
+  return { modified, skipped, unmatched };
 }
 
-function resolvePropertyPath(node: { getName(): string; getParent(): { getKind(): number; getName?(): string; getParent(): unknown } }): string | null {
+function resolvePropertyPath(
+  node: { getName(): string; getParent(): unknown },
+  SyntaxKind: { ObjectLiteralExpression: number; PropertyAssignment: number; ArrayLiteralExpression: number; VariableDeclaration: number; AsExpression: number; SatisfiesExpression: number },
+): string | null {
   const parts: string[] = [node.getName()];
-  let current = node.getParent();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let previous: any = node;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let current: any = node.getParent();
 
   while (current) {
     const kind = current.getKind();
-    // ObjectLiteralExpression = 210 in ts-morph
-    if (kind === 210 || kind === 211) {
-      const parent = current.getParent() as { getKind(): number; getName?(): string; getParent(): unknown } | undefined;
-      if (parent && typeof parent.getName === 'function') {
-        parts.unshift(parent.getName()!);
-        current = parent.getParent() as typeof current;
-      } else {
-        break;
+
+    if (kind === SyntaxKind.ObjectLiteralExpression) {
+      // Pass through, the meaningful parent is above
+      previous = current;
+      current = current.getParent();
+    } else if (kind === SyntaxKind.AsExpression || kind === SyntaxKind.SatisfiesExpression) {
+      // Pass through type assertion wrappers (e.g. `{ ... } as const`)
+      previous = current;
+      current = current.getParent();
+    } else if (kind === SyntaxKind.ArrayLiteralExpression) {
+      // Find the index of the previous node (an element) in the array
+      const elements = current.getElements();
+      const idx = elements.indexOf(previous);
+      if (idx !== -1) {
+        parts.unshift(String(idx));
       }
+      previous = current;
+      current = current.getParent();
+    } else if (kind === SyntaxKind.PropertyAssignment) {
+      parts.unshift(current.getName()!);
+      previous = current;
+      current = current.getParent();
+    } else if (typeof current.getName === 'function') {
+      // VariableDeclaration or similar named node
+      parts.unshift(current.getName()!);
+      break;
     } else {
       break;
     }
@@ -104,13 +152,21 @@ function resolvePropertyPath(node: { getName(): string; getParent(): { getKind()
   return parts.length > 0 ? parts.join('.') : null;
 }
 
-function escapeString(str: string): string {
-  return str
+function escapeString(str: string, quoteChar: string = "'"): string {
+  let result = str
     .replace(/\\/g, '\\\\')
-    .replace(/'/g, "\\'")
     .replace(/\n/g, '\\n')
     .replace(/\r/g, '\\r')
+    .replace(/\t/g, '\\t')
     .replace(/\0/g, '\\0')
     .replace(/\u2028/g, '\\u2028')
     .replace(/\u2029/g, '\\u2029');
+
+  if (quoteChar === "'") {
+    result = result.replace(/'/g, "\\'");
+  } else {
+    result = result.replace(/"/g, '\\"');
+  }
+
+  return result;
 }
