@@ -8,6 +8,88 @@ interface RestringHighlightProps {
 }
 
 /**
+ * Match interpolation template fragments across adjacent sibling DOM nodes.
+ * For a template like "Follow {handle} for more." with fragments ["Follow ", " for more."],
+ * walks the DOM looking for a parent whose direct inline children contain the fragments
+ * in order with any content (elements or text) filling the gaps between them.
+ * Returns bounding rects that span from the first fragment to the last.
+ */
+function matchTemplateInDom(fragments: string[]): DOMRect[] {
+  // Filter to non-empty fragments
+  const nonEmpty = fragments.filter((f) => f.trim().length > 0);
+  if (nonEmpty.length === 0) return [];
+
+  const results: DOMRect[] = [];
+  // Use Set to avoid checking the same parent multiple times
+  const checkedParents = new Set<Node>();
+
+  // Find all text nodes that contain the first non-empty fragment
+  const firstFrag = nonEmpty[0]!.trim();
+  const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, {
+    acceptNode(node) {
+      const parent = node.parentElement;
+      if (parent?.closest('.restringjs-sidebar, .restringjs-toggle, .restringjs-highlight-overlay')) {
+        return NodeFilter.FILTER_REJECT;
+      }
+      return NodeFilter.FILTER_ACCEPT;
+    },
+  });
+
+  let node: Node | null;
+  while ((node = walker.nextNode())) {
+    const text = node.textContent ?? '';
+    if (!text.includes(firstFrag)) continue;
+
+    // Walk up to find the common container - typically the immediate parent element
+    const container = node.parentElement?.parentElement ?? node.parentElement;
+    if (!container || checkedParents.has(container)) continue;
+    checkedParents.add(container);
+
+    // Collect all inline text content from the container's subtree in order
+    const inlineWalker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT);
+    const textParts: { node: Node; text: string }[] = [];
+    let inlineNode: Node | null;
+    while ((inlineNode = inlineWalker.nextNode())) {
+      const t = inlineNode.textContent ?? '';
+      if (t.length > 0) textParts.push({ node: inlineNode, text: t });
+    }
+
+    // Try to match all non-empty fragments in sequence across the collected text parts
+    const fullText = textParts.map((p) => p.text).join('');
+    let allFound = true;
+    let searchFrom = 0;
+
+    for (const frag of nonEmpty) {
+      const trimmed = frag.trim();
+      const idx = fullText.indexOf(trimmed, searchFrom);
+      if (idx === -1) {
+        allFound = false;
+        break;
+      }
+      searchFrom = idx + trimmed.length;
+    }
+
+    if (!allFound) continue;
+
+    // All fragments found in order. Create a bounding rect spanning the container's
+    // inline content. Use a range from the first text node to the last.
+    try {
+      const range = document.createRange();
+      range.setStartBefore(textParts[0]!.node);
+      range.setEndAfter(textParts[textParts.length - 1]!.node);
+      const rect = range.getBoundingClientRect();
+      if (rect.width > 0 && rect.height > 0) {
+        results.push(rect);
+      }
+    } catch {
+      // Range creation can fail in edge cases, safe to skip
+    }
+  }
+
+  return results;
+}
+
+/**
  * Visual highlight mode: overlays DOM elements that contain registered
  * field values, allowing click-to-jump to the sidebar editor.
  * Only active when highlight mode is toggled on in the sidebar.
@@ -15,7 +97,8 @@ interface RestringHighlightProps {
  * Known limitations (documented, not bugs):
  * - Shadow DOM: TreeWalker cannot pierce shadow roots. Web component internals are invisible.
  * - CSS `content`: Text from ::before/::after pseudo-elements is not in the DOM tree.
- * - Split text: "HAIR" in one element + "STYLIST" in another won't match "HAIR STYLIST".
+ * - Non-interpolated split text: "HAIR" in one element + "STYLIST" in another won't match
+ *   "HAIR STYLIST" unless the value uses `{placeholder}` interpolation syntax.
  * - JS-driven animation: requestAnimationFrame-based motion without CSS transitions has no
  *   completion event. Overlays reposition on the next debounce trigger (scroll, mutation, etc).
  */
@@ -79,12 +162,28 @@ export function RestringHighlight({ enabled = true }: RestringHighlightProps) {
     // to different field registrations in order of DOM appearance
     const pathUsageCount = new Map<string, number>();
 
+    // Separate exact-match values from interpolation templates
+    const exactValues = new Map<string, FieldPath[]>();
+    const templateValues: { fragments: string[]; paths: FieldPath[] }[] = [];
+
+    for (const [value, paths] of fieldValues) {
+      if (/\{[^}]+\}/.test(value)) {
+        // Split "prefix {var} suffix" into ["prefix ", " suffix"]
+        const fragments = value.split(/\{[^}]+\}/).map((f) => f);
+        if (fragments.some((f) => f.trim().length > 0)) {
+          templateValues.push({ fragments, paths });
+        }
+      } else {
+        exactValues.set(value, paths);
+      }
+    }
+
+    // Phase 1: Exact text-node matching
     let textNode: Node | null;
     while ((textNode = walker.nextNode())) {
       const text = textNode.textContent?.trim();
-      if (text && fieldValues.has(text)) {
-        const paths = fieldValues.get(text)!;
-        // Pick the next unmatched path for this value, cycling through
+      if (text && exactValues.has(text)) {
+        const paths = exactValues.get(text)!;
         const key = text;
         const usedCount = pathUsageCount.get(key) ?? 0;
         const path = paths[usedCount % paths.length]!;
@@ -95,6 +194,23 @@ export function RestringHighlight({ enabled = true }: RestringHighlightProps) {
         const rect = range.getBoundingClientRect();
         if (rect.width > 0 && rect.height > 0) {
           found.push({ path, rect });
+        }
+      }
+    }
+
+    // Phase 2: Interpolation template matching across sibling nodes
+    // For values like "Follow {handle} for more.", match literal fragments
+    // across adjacent DOM siblings (text nodes + element textContent),
+    // then create one overlay spanning the full range.
+    for (const { fragments, paths } of templateValues) {
+      const key = fragments.join('{...}');
+      const matches = matchTemplateInDom(fragments);
+      for (const match of matches) {
+        const usedCount = pathUsageCount.get(key) ?? 0;
+        const path = paths[usedCount % paths.length]!;
+        pathUsageCount.set(key, usedCount + 1);
+        if (match.width > 0 && match.height > 0) {
+          found.push({ path, rect: match });
         }
       }
     }
