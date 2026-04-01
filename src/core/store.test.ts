@@ -291,4 +291,63 @@ describe('createStore', () => {
       expect(callCount).toBe(1);
     });
   });
+
+  describe('hiddenHighlights', () => {
+    it('fields are not hidden by default', () => {
+      const store = createStore();
+      store.registerField({ path: 'hero.title', defaultValue: 'Hello' });
+      expect(store.isHighlightHidden('hero.title')).toBe(false);
+      expect(store.getHiddenHighlights().size).toBe(0);
+    });
+
+    it('toggleHighlightHidden hides a field', () => {
+      const store = createStore();
+      store.registerField({ path: 'hero.title', defaultValue: 'Hello' });
+      store.toggleHighlightHidden('hero.title');
+      expect(store.isHighlightHidden('hero.title')).toBe(true);
+      expect(store.getHiddenHighlights().has('hero.title')).toBe(true);
+    });
+
+    it('toggleHighlightHidden toggles back to visible', () => {
+      const store = createStore();
+      store.registerField({ path: 'hero.title', defaultValue: 'Hello' });
+      store.toggleHighlightHidden('hero.title');
+      store.toggleHighlightHidden('hero.title');
+      expect(store.isHighlightHidden('hero.title')).toBe(false);
+    });
+
+    it('emits on toggle', () => {
+      const store = createStore();
+      let callCount = 0;
+      store.subscribe(() => { callCount++; });
+      store.toggleHighlightHidden('hero.title');
+      expect(callCount).toBe(1);
+      store.toggleHighlightHidden('hero.title');
+      expect(callCount).toBe(2);
+    });
+
+    it('snapshot includes hiddenHighlights', () => {
+      const store = createStore();
+      store.registerField({ path: 'hero.title', defaultValue: 'Hello' });
+      store.toggleHighlightHidden('hero.title');
+      const snap = store.getSnapshot();
+      expect(snap.hiddenHighlights.has('hero.title')).toBe(true);
+    });
+
+    it('snapshot hiddenHighlights is a copy (not mutated by store)', () => {
+      const store = createStore();
+      store.toggleHighlightHidden('a.b');
+      const snap = store.getSnapshot();
+      store.toggleHighlightHidden('c.d');
+      expect(snap.hiddenHighlights.has('c.d')).toBe(false);
+    });
+
+    it('getHiddenHighlights returns a copy', () => {
+      const store = createStore();
+      store.toggleHighlightHidden('a.b');
+      const hidden = store.getHiddenHighlights();
+      hidden.add('x.y');
+      expect(store.isHighlightHidden('x.y')).toBe(false);
+    });
+  });
 });
