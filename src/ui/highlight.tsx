@@ -43,12 +43,6 @@ function stripMarkup(value: string): string {
   return s;
 }
 
-/**
- * Normalize DOM textContent for comparison: collapse whitespace sequences.
- */
-function normalizeText(text: string): string {
-  return text.replace(/\s+/g, ' ').trim();
-}
 
 /**
  * Aggressive normalization for fuzzy comparison: remove ALL whitespace.

@@ -1,9 +1,9 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import { render, screen, fireEvent, act, cleanup } from '@testing-library/react';
 import React from 'react';
 import { RestringProvider } from '../react/provider';
 import { RestringSidebar } from './sidebar';
-import { useRestring, useRegister, useRegisterSection } from '../react/hooks';
+import { useRestring, useRegisterSection } from '../react/hooks';
 import { createMemoryAdapter } from '../adapters/index';
 
 afterEach(cleanup);

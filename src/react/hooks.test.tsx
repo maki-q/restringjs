@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { render, act, cleanup } from '@testing-library/react';
 import React from 'react';
 import { RestringProvider } from './provider';
@@ -30,12 +30,6 @@ describe('useRestring', () => {
   it('returns the override value when set', () => {
     let value = '';
     let setOverride: (path: string, val: string) => void;
-    function Test() {
-      const snapshot = useSnapshot();
-      value = useRestring({ path: 'test.field', defaultValue: 'hello' });
-      // Access setOverride from context indirectly
-      return null;
-    }
     // Use useRegister to get setter
     function TestWithSetter() {
       const [val, setter] = useRegister({ path: 'over.field', defaultValue: 'original' });

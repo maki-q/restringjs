@@ -3,7 +3,7 @@ import { render, act, cleanup } from '@testing-library/react';
 import React from 'react';
 import { RestringProvider } from './provider';
 import { createMemoryAdapter } from '../adapters/index';
-import { useRestring, useSnapshot } from './hooks';
+import { useRestring } from './hooks';
 import { useRestringContext } from './context';
 
 afterEach(cleanup);
