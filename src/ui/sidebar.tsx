@@ -206,13 +206,17 @@ export function RestringSidebar({
                   {section?.label ?? sectionId}
                 </div>
               )}
-              {fields.map(([path, config]) => (
+              {fields.map(([path, config]) => {
+                const currentValue = snapshot.overrides[path] ?? config.defaultValue;
+                const hasOverride = path in snapshot.overrides && snapshot.overrides[path] !== config.defaultValue;
+                return (
                 <FieldEditor
                   key={path}
                   path={path}
                   config={config}
-                  value={snapshot.overrides[path] ?? config.defaultValue}
+                  value={currentValue}
                   isDirty={snapshot.dirty.has(path)}
+                  hasOverride={hasOverride}
                   isHighlighted={ctx.highlightedField === path}
                   isHighlightHidden={snapshot.hiddenHighlights.has(path)}
                   highlightMode={highlightMode}
@@ -223,7 +227,8 @@ export function RestringSidebar({
                   onReset={() => ctx.resetField(path)}
                   onToggleHighlight={() => ctx.toggleHighlightHidden(path)}
                 />
-              ))}
+                );
+              })}
             </div>
           );
         })}
@@ -252,6 +257,7 @@ interface FieldEditorProps {
   config: FieldConfig;
   value: string;
   isDirty: boolean;
+  hasOverride: boolean;
   isHighlighted: boolean;
   isHighlightHidden: boolean;
   highlightMode: boolean;
@@ -263,7 +269,7 @@ interface FieldEditorProps {
   onToggleHighlight: () => void;
 }
 
-function FieldEditor({ path, config, value, isDirty, isHighlighted, isHighlightHidden, highlightMode, highlightColor, onFocus, onBlur, onChange, onReset, onToggleHighlight }: FieldEditorProps) {
+function FieldEditor({ path, config, value, isDirty, hasOverride, isHighlighted, isHighlightHidden, highlightMode, highlightColor, onFocus, onBlur, onChange, onReset, onToggleHighlight }: FieldEditorProps) {
   const isRtl = detectRtl(value);
 
   return (
@@ -281,7 +287,8 @@ function FieldEditor({ path, config, value, isDirty, isHighlighted, isHighlightH
           title={config.description}
         >
           {path}
-          {isDirty && <span style={{ color: '#e67e22', marginLeft: '4px' }}>●</span>}
+          {isDirty && <span style={{ color: '#e67e22', marginLeft: '4px' }} title="Unsaved change">●</span>}
+          {hasOverride && !isDirty && <span style={{ color: '#27ae60', marginLeft: '4px' }} title="Edited">●</span>}
         </label>
         <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
           {highlightMode && (
@@ -303,7 +310,7 @@ function FieldEditor({ path, config, value, isDirty, isHighlighted, isHighlightH
               {isHighlightHidden ? '👁‍🗨' : '👁'}
             </button>
           )}
-          {isDirty && (
+          {(isDirty || hasOverride) && (
             <button
               type="button"
               onClick={onReset}
