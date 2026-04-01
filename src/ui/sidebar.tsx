@@ -13,13 +13,14 @@ interface RestringSidebarProps {
 }
 
 export function RestringSidebar({
-  position = 'right',
+  position: initialPosition = 'right',
   width = 360,
   defaultOpen = false,
 }: RestringSidebarProps) {
   const ctx = useRestringContext();
   const [open, setOpenState] = useState(defaultOpen);
   const [search, setSearch] = useState('');
+  const [position, setPosition] = useState<'left' | 'right'>(initialPosition);
 
   const ctxRef = useRef(ctx);
   ctxRef.current = ctx;
@@ -147,6 +148,15 @@ export function RestringSidebar({
             aria-label={highlightMode ? 'Turn off highlights' : 'Turn on highlights'}
           >
             {highlightMode ? 'Highlights off' : 'Highlights on'}
+          </button>
+          <button
+            type="button"
+            onClick={() => setPosition(position === 'right' ? 'left' : 'right')}
+            style={{ ...headerBtnStyle, padding: '2px 6px' }}
+            aria-label={`Move sidebar to ${position === 'right' ? 'left' : 'right'}`}
+            title={`Move to ${position === 'right' ? 'left' : 'right'}`}
+          >
+            {position === 'right' ? '◀' : '▶'}
           </button>
           <button
             type="button"
