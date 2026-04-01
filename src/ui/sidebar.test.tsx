@@ -193,7 +193,7 @@ describe('RestringSidebar', () => {
     expect(saveSpy).toHaveBeenCalled();
   });
 
-  it('reset button clears all overrides', () => {
+  it('per-field reset clears individual override', () => {
     render(
       <TestApp
         defaultOpen={true}
@@ -203,7 +203,7 @@ describe('RestringSidebar', () => {
     const textarea = screen.getByRole('textbox', { name: 'Edit reset.field' }) as HTMLTextAreaElement;
     fireEvent.change(textarea, { target: { value: 'changed' } });
     expect(textarea.value).toBe('changed');
-    fireEvent.click(screen.getByText('Reset'));
+    fireEvent.click(screen.getByText('reset'));
     expect(textarea.value).toBe('original');
   });
 

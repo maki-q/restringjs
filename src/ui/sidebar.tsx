@@ -135,9 +135,6 @@ export function RestringSidebar({
               Save
             </button>
           )}
-          <button type="button" onClick={() => ctx.resetAll()} style={headerBtnStyle}>
-            Reset
-          </button>
           <button
             type="button"
             onClick={() => ctx.setHighlightMode(!highlightMode)}
