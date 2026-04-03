@@ -1,8 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { createStore } from './store';
 
-describe('createStore', () => {
-  it('registers and retrieves a field', () => {
+describe('createStore', () => {  it('registers and retrieves a field', () => {
     const store = createStore();
     store.registerField({ path: 'hero.title', defaultValue: 'Hello' });
     expect(store.getValue('hero.title')).toBe('Hello');

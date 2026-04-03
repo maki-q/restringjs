@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { FieldConfig, FieldPath, RestringAdapter, RestringContextValue, SectionConfig } from '../core/types';
-import { createStore } from '../core/store';
+import { createStore, type StateStorage } from '../core/store';
 import { RestringContext } from './context';
 
 /**
@@ -18,6 +18,8 @@ interface RestringProviderProps {
   defaultHighlightMode?: boolean;
   /** CSS color for highlight overlays. Defaults to `'#4a6cf7'`. */
   highlightColor?: string;
+  /** Custom persistence for UI state (highlight mode, sidebar). Defaults to localStorage. */
+  storage?: StateStorage;
   /**
    * Called whenever an override is set or a field is reset.
    * Useful for retrofit integrations where the host app manages its own
@@ -27,8 +29,8 @@ interface RestringProviderProps {
   children: React.ReactNode;
 }
 
-export function RestringProvider({ enabled, adapter, defaultHighlightMode, highlightColor, onOverrideChange, children }: RestringProviderProps) {
-  const storeRef = useRef(createStore({ defaultHighlightMode, highlightColor }));
+export function RestringProvider({ enabled, adapter, defaultHighlightMode, highlightColor, storage, onOverrideChange, children }: RestringProviderProps) {
+  const storeRef = useRef(createStore({ defaultHighlightMode, highlightColor, storage }));
   const [highlightedField, setHighlightedField] = useState<FieldPath | null>(null);
   const adapterRef = useRef(adapter);
   adapterRef.current = adapter;

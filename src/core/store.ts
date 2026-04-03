@@ -9,6 +9,16 @@ import type {
 type Listener = () => void;
 
 /**
+ * Simple key-value persistence interface for UI state (highlight mode,
+ * sidebar open). Implement with cookies, sessionStorage, or anything
+ * that works across your domain setup.
+ */
+export interface StateStorage {
+  getItem(key: string): string | null;
+  setItem(key: string, value: string): void;
+}
+
+/**
  * Central store for field registrations and overrides.
  * Immutable apply — never mutates original config objects.
  */
@@ -17,6 +27,37 @@ export interface StoreOptions {
   defaultHighlightMode?: boolean;
   /** CSS color for highlight overlays. Defaults to `'#4a6cf7'`. */
   highlightColor?: string;
+  /** Custom persistence for UI state. Defaults to localStorage. */
+  storage?: StateStorage;
+}
+
+const STORAGE_KEY_HIGHLIGHT = 'restring:highlightMode';
+const STORAGE_KEY_SIDEBAR = 'restring:sidebarOpen';
+
+function defaultStorage(): StateStorage | null {
+  if (typeof globalThis.localStorage === 'undefined') return null;
+  return globalThis.localStorage;
+}
+
+function readBool(storage: StateStorage | null, key: string, fallback: boolean): boolean {
+  if (!storage) return fallback;
+  try {
+    const v = storage.getItem(key);
+    if (v === 'true') return true;
+    if (v === 'false') return false;
+    return fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+function writeBool(storage: StateStorage | null, key: string, value: boolean): void {
+  if (!storage) return;
+  try {
+    storage.setItem(key, String(value));
+  } catch {
+    // quota exceeded or unavailable - ignore
+  }
 }
 
 export function createStore(options?: StoreOptions) {
@@ -25,8 +66,9 @@ export function createStore(options?: StoreOptions) {
   let overrides: OverrideMap = {};
   const dirty = new Set<FieldPath>();
   const listeners = new Set<Listener>();
-  let sidebarOpen = false;
-  let highlightMode = options?.defaultHighlightMode ?? true;
+  const storage = options?.storage ?? defaultStorage();
+  let sidebarOpen = readBool(storage, STORAGE_KEY_SIDEBAR, false);
+  let highlightMode = readBool(storage, STORAGE_KEY_HIGHLIGHT, options?.defaultHighlightMode ?? true);
   const highlightColor = options?.highlightColor ?? '#4a6cf7';
   const hiddenHighlights = new Set<FieldPath>();
   let version = 0;
@@ -129,6 +171,7 @@ export function createStore(options?: StoreOptions) {
   function setSidebarOpen(open: boolean): void {
     if (sidebarOpen !== open) {
       sidebarOpen = open;
+      writeBool(storage, STORAGE_KEY_SIDEBAR, open);
       emit();
     }
   }
@@ -140,6 +183,7 @@ export function createStore(options?: StoreOptions) {
   function setHighlightMode(on: boolean): void {
     if (highlightMode !== on) {
       highlightMode = on;
+      writeBool(storage, STORAGE_KEY_HIGHLIGHT, on);
       emit();
     }
   }

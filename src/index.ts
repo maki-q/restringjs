@@ -14,7 +14,7 @@ export type {
   BakeOptions,
   RestringConfig,
 } from './core/types';
-export { createStore, type StoreOptions } from './core/store';
+export { createStore, type StoreOptions, type StateStorage } from './core/store';
 export type { RestringStore } from './core/store';
 export { applyOverrides, flattenObject, unflattenObject } from './core/apply';
 
